@@ -1,0 +1,337 @@
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+import CategoryCard from '../components/CategoryCard'
+import Modal from '../components/Modal'
+import { TIPO_LABELS } from '../lib/categoryConfig'
+
+const TIPOS = Object.keys(TIPO_LABELS)
+
+export default function Trip() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const [trip, setTrip] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [showNewCat, setShowNewCat] = useState(false)
+  const [newCat, setNewCat] = useState({ tipo: 'passagens', name: '' })
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    loadAll()
+  }, [id])
+
+  async function loadAll() {
+    const [{ data: tripData }, { data: catsData }] = await Promise.all([
+      supabase.from('trips').select('*').eq('id', id).single(),
+      supabase
+        .from('categories')
+        .select('*, options(*)')
+        .eq('trip_id', id)
+        .order('sort_order'),
+    ])
+    setTrip(tripData)
+    // Sort options by created_at within each category
+    setCategories(
+      (catsData ?? []).map(c => ({
+        ...c,
+        options: (c.options ?? []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
+      }))
+    )
+  }
+
+  async function addCategory(e) {
+    e.preventDefault()
+    setSaving(true)
+    const { data, error } = await supabase
+      .from('categories')
+      .insert([{
+        trip_id: id,
+        tipo: newCat.tipo,
+        name: newCat.name.trim() || TIPO_LABELS[newCat.tipo],
+        sort_order: categories.length,
+      }])
+      .select('*, options(*)')
+      .single()
+    setSaving(false)
+    if (!error) {
+      setCategories(c => [...c, { ...data, options: [] }])
+      setShowNewCat(false)
+      setNewCat({ tipo: 'passagens', name: '' })
+    }
+  }
+
+  async function updateCategoryStatus(catId, status) {
+    await supabase.from('categories').update({ status }).eq('id', catId)
+    setCategories(cats => cats.map(c => c.id === catId ? { ...c, status } : c))
+  }
+
+  async function deleteCategory(catId) {
+    if (!confirm('Deletar esta categoria e todas as suas opções?')) return
+    await supabase.from('categories').delete().eq('id', catId)
+    setCategories(cats => cats.filter(c => c.id !== catId))
+  }
+
+  async function addOption(catId, option) {
+    const { data, error } = await supabase
+      .from('options')
+      .insert([{ ...option, category_id: catId }])
+      .select()
+      .single()
+    if (!error) {
+      setCategories(cats =>
+        cats.map(c =>
+          c.id === catId ? { ...c, options: [...(c.options ?? []), data] } : c
+        )
+      )
+    }
+  }
+
+  async function updateOptionStatus(catId, optionId, status) {
+    if (status === 'selecionado') {
+      // Deselect all others in the same category first
+      await supabase
+        .from('options')
+        .update({ status: 'em_pesquisa' })
+        .eq('category_id', catId)
+        .eq('status', 'selecionado')
+      await supabase.from('options').update({ status: 'selecionado' }).eq('id', optionId)
+      setCategories(cats =>
+        cats.map(c =>
+          c.id === catId
+            ? {
+                ...c,
+                options: (c.options ?? []).map(o => ({
+                  ...o,
+                  status: o.id === optionId
+                    ? 'selecionado'
+                    : o.status === 'selecionado' ? 'em_pesquisa' : o.status,
+                })),
+              }
+            : c
+        )
+      )
+    } else {
+      await supabase.from('options').update({ status }).eq('id', optionId)
+      setCategories(cats =>
+        cats.map(c =>
+          c.id === catId
+            ? { ...c, options: (c.options ?? []).map(o => o.id === optionId ? { ...o, status } : o) }
+            : c
+        )
+      )
+    }
+  }
+
+  async function deleteOption(catId, optionId) {
+    await supabase.from('options').delete().eq('id', optionId)
+    setCategories(cats =>
+      cats.map(c =>
+        c.id === catId
+          ? { ...c, options: (c.options ?? []).filter(o => o.id !== optionId) }
+          : c
+      )
+    )
+  }
+
+  if (!trip) return <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Carregando...</div>
+
+  const { estimado, fechado } = calcBudgets(categories)
+  const currency = trip.currency
+
+  return (
+    <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px' }}>
+      {/* Header */}
+      <button onClick={() => navigate('/')} style={btnBack}>← Minhas viagens</button>
+      <div style={{ marginTop: 12, marginBottom: 24 }}>
+        <h1 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700 }}>{trip.destination}</h1>
+        <div style={{ fontSize: 13, color: '#64748b' }}>
+          {trip.start_date && trip.end_date
+            ? `${fmtDate(trip.start_date)} – ${fmtDate(trip.end_date)}`
+            : 'Datas a definir'}
+          {' · '}{trip.num_people} pessoa{trip.num_people !== 1 ? 's' : ''}
+          {' · '}{currency}
+        </div>
+        {trip.notes && <div style={{ marginTop: 6, fontSize: 13, color: '#475569' }}>{trip.notes}</div>}
+      </div>
+
+      {/* Budget cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 28 }}>
+        <BudgetCard
+          label="Orçamento estimado"
+          value={estimado}
+          currency={currency}
+          color="#f59e0b"
+          hint="Melhor opção por categoria (aberta + fechada)"
+        />
+        <BudgetCard
+          label="Comprometido"
+          value={fechado}
+          currency={currency}
+          color="#10b981"
+          hint="Apenas categorias fechadas"
+        />
+      </div>
+
+      {/* Categories */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {categories.map(cat => (
+          <CategoryCard
+            key={cat.id}
+            category={cat}
+            currency={currency}
+            onStatusChange={status => updateCategoryStatus(cat.id, status)}
+            onAddOption={option => addOption(cat.id, option)}
+            onOptionStatusChange={(optId, status) => updateOptionStatus(cat.id, optId, status)}
+            onDeleteOption={optId => deleteOption(cat.id, optId)}
+            onDelete={() => deleteCategory(cat.id)}
+          />
+        ))}
+      </div>
+
+      {/* Add category */}
+      <button
+        onClick={() => setShowNewCat(true)}
+        style={{ ...btnDashed, marginTop: categories.length > 0 ? 14 : 0 }}
+      >
+        + Adicionar categoria
+      </button>
+
+      {showNewCat && (
+        <Modal title="Nova categoria" onClose={() => setShowNewCat(false)}>
+          <form onSubmit={addCategory} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <Field label="Tipo">
+              <select
+                style={inputStyle}
+                value={newCat.tipo}
+                onChange={e => setNewCat(f => ({ ...f, tipo: e.target.value, name: '' }))}
+              >
+                {TIPOS.map(t => <option key={t} value={t}>{TIPO_LABELS[t]}</option>)}
+              </select>
+            </Field>
+            <Field label="Nome personalizado (opcional)">
+              <input
+                style={inputStyle}
+                value={newCat.name}
+                onChange={e => setNewCat(f => ({ ...f, name: e.target.value }))}
+                placeholder={TIPO_LABELS[newCat.tipo]}
+              />
+            </Field>
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button type="button" onClick={() => setShowNewCat(false)} style={{ ...btnSecondary, flex: 1 }}>Cancelar</button>
+              <button type="submit" disabled={saving} style={{ ...btnPrimary, flex: 1 }}>
+                {saving ? 'Salvando...' : 'Adicionar'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+function BudgetCard({ label, value, currency, color, hint }) {
+  return (
+    <div style={{ background: '#fff', border: `2px solid ${color}30`, borderRadius: 12, padding: '14px 16px' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ fontSize: 20, fontWeight: 700, margin: '6px 0 2px', color: '#1e293b' }}>
+        {fmtCurrency(value, currency)}
+      </div>
+      <div style={{ fontSize: 11, color: '#94a3b8' }}>{hint}</div>
+    </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{label}</span>
+      {children}
+    </label>
+  )
+}
+
+function calcBudgets(categories) {
+  let estimado = 0
+  let fechado = 0
+  for (const cat of categories) {
+    if (cat.status === 'descartado') continue
+    const options = cat.options ?? []
+    const selected = options.find(o => o.status === 'selecionado')
+    const best =
+      selected ??
+      options
+        .filter(o => o.status !== 'descartado')
+        .sort((a, b) => (Number(a.value) || 0) - (Number(b.value) || 0))[0]
+    const val = Number(best?.value ?? 0)
+    estimado += val
+    if (cat.status === 'fechado') fechado += val
+  }
+  return { estimado, fechado }
+}
+
+function fmtDate(d) {
+  if (!d) return ''
+  const [y, m, day] = d.split('-')
+  return `${day}/${m}/${y}`
+}
+
+function fmtCurrency(val, currency) {
+  try {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(val)
+  } catch {
+    return `${currency} ${Number(val).toFixed(2)}`
+  }
+}
+
+const inputStyle = {
+  padding: '8px 10px',
+  border: '1px solid #d1d5db',
+  borderRadius: 6,
+  fontSize: 14,
+  width: '100%',
+  boxSizing: 'border-box',
+  outline: 'none',
+}
+
+const btnPrimary = {
+  background: '#3b82f6',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 8,
+  padding: '10px 16px',
+  fontSize: 14,
+  fontWeight: 600,
+  cursor: 'pointer',
+}
+
+const btnSecondary = {
+  background: '#f1f5f9',
+  color: '#374151',
+  border: '1px solid #e2e8f0',
+  borderRadius: 8,
+  padding: '10px 16px',
+  fontSize: 14,
+  cursor: 'pointer',
+}
+
+const btnBack = {
+  background: 'none',
+  border: 'none',
+  color: '#3b82f6',
+  fontSize: 14,
+  cursor: 'pointer',
+  padding: 0,
+  fontWeight: 500,
+}
+
+const btnDashed = {
+  width: '100%',
+  padding: 14,
+  background: 'transparent',
+  border: '2px dashed #d1d5db',
+  borderRadius: 12,
+  color: '#64748b',
+  fontSize: 14,
+  cursor: 'pointer',
+  fontWeight: 500,
+}
