@@ -30,6 +30,9 @@ export default function CategoryCard({
   const [showAddOption, setShowAddOption] = useState(false)
   const [optForm, setOptForm] = useState(EMPTY_OPT)
   const [saving, setSaving] = useState(false)
+  const [linkUrl, setLinkUrl] = useState('')
+  const [parsing, setParsing] = useState(false)
+  const [parseError, setParseError] = useState('')
 
   const campos = TIPO_CAMPOS[category.tipo] ?? []
   const options = category.options ?? []
@@ -52,6 +55,36 @@ export default function CategoryCard({
     category.tipo === 'gastos_diarios'
       ? (Number(optForm.campos.por_dia ?? 0)) * (Number(optForm.campos.num_dias ?? 0))
       : null
+
+  async function handleParseLink() {
+    if (!linkUrl.startsWith('http')) {
+      setParseError('Cole uma URL válida começando com http')
+      return
+    }
+    setParsing(true)
+    setParseError('')
+    try {
+      const res = await fetch('/api/parse-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: linkUrl, tipo: category.tipo }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      const { data } = json
+      setOptForm({
+        name: data.name ?? '',
+        value: data.value ?? '',
+        url: data.url ?? linkUrl,
+        notes: '',
+        campos: data.campos ?? {},
+      })
+      setLinkUrl('')
+    } catch (err) {
+      setParseError(err.message ?? 'Erro ao analisar o link')
+    }
+    setParsing(false)
+  }
 
   async function submitOption(e) {
     e.preventDefault()
@@ -175,9 +208,49 @@ export default function CategoryCard({
       {showAddOption && (
         <Modal
           title={`Nova opção — ${TIPO_LABELS[category.tipo]}`}
-          onClose={() => { setShowAddOption(false); setOptForm(EMPTY_OPT) }}
+          onClose={() => { setShowAddOption(false); setOptForm(EMPTY_OPT); setLinkUrl(''); setParseError('') }}
         >
           <form onSubmit={submitOption} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            {/* Preencher por link */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 8 }}>
+                ✨ Preencher automaticamente por link
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="url"
+                  style={{ ...inputStyle, background: '#fff', flex: 1 }}
+                  value={linkUrl}
+                  onChange={e => { setLinkUrl(e.target.value); setParseError('') }}
+                  placeholder="Cole o link da passagem, hotel, carro..."
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleParseLink())}
+                />
+                <button
+                  type="button"
+                  onClick={handleParseLink}
+                  disabled={parsing || !linkUrl}
+                  style={{
+                    ...btnPrimary,
+                    padding: '7px 14px',
+                    fontSize: 13,
+                    opacity: parsing || !linkUrl ? 0.6 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {parsing ? 'Analisando...' : 'Analisar'}
+                </button>
+              </div>
+              {parseError && (
+                <div style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{parseError}</div>
+              )}
+              {parsing && (
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>
+                  Lendo a página e extraindo informações...
+                </div>
+              )}
+            </div>
+
             <Field label="Nome da opção *">
               <input
                 style={inputStyle}
@@ -277,7 +350,7 @@ export default function CategoryCard({
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <button
                 type="button"
-                onClick={() => { setShowAddOption(false); setOptForm(EMPTY_OPT) }}
+                onClick={() => { setShowAddOption(false); setOptForm(EMPTY_OPT); setLinkUrl(''); setParseError('') }}
                 style={{ ...btnSecondary, flex: 1 }}
               >
                 Cancelar
