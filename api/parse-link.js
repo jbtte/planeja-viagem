@@ -8,6 +8,8 @@ const CAMPOS_PROMPT = {
     "duracao": "duração total do voo (ex: 10h30)",
     "bagagem": true ou false (bagagem despachada inclusa no preço),
     "por_pessoa": true ou false (o preço informado é por pessoa?),
+    "num_parcelas": número de parcelas (null se à vista),
+    "cancelamento_ate": "data limite para cancelamento gratuito no formato YYYY-MM-DD (null se não encontrado)",
     "escalas_ida": [{ "local": "cidade/aeroporto", "duracao": "2h30" }],
     "escalas_volta": [{ "local": "cidade/aeroporto", "duracao": "1h45" }]
   }`,
@@ -21,6 +23,7 @@ const CAMPOS_PROMPT = {
     "regime": "tipo de regime (ex: B&B, Meia Pensão, All Inclusive)",
     "reserva_via": "nome do site ou 'Direto com o hotel'",
     "reservado": true ou false,
+    "num_parcelas": número de parcelas (null se à vista),
     "cancelamento_ate": "data limite para cancelamento gratuito no formato YYYY-MM-DD (null se não encontrado)"
   }`,
   carro: `

@@ -16,6 +16,7 @@ const EMPTY_FORM = {
   num_people: 2,
   currency: 'BRL',
   exchange_rate: 1,
+  budget: '',
   notes: '',
 }
 
@@ -57,7 +58,12 @@ export default function Trips() {
 
     const { data: trip, error } = await supabase
       .from('trips')
-      .insert([{ ...form, user_id: user.id, exchange_rate: Number(form.exchange_rate) || 1 }])
+      .insert([{
+        ...form,
+        user_id: user.id,
+        exchange_rate: Number(form.exchange_rate) || 1,
+        budget: form.budget ? Number(form.budget) : null,
+      }])
       .select()
       .single()
 
@@ -190,6 +196,18 @@ export default function Trips() {
                 />
               </Field>
             )}
+
+            <Field label={`Estimativa de gasto total (${form.currency})`}>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                style={inputStyle}
+                value={form.budget}
+                onChange={e => set('budget', e.target.value)}
+                placeholder="Quanto você estima gastar no total?"
+              />
+            </Field>
 
             <Field label="Observações">
               <textarea

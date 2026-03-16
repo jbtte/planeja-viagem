@@ -215,18 +215,34 @@ export default function Trip() {
       </div>
 
       {/* Budget cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: trip.budget ? '1fr 1fr 1fr' : '1fr 1fr', gap: 12, marginBottom: 28 }}>
+        {trip.budget && (
+          <BudgetCard
+            label="Estimativa de gasto"
+            value={trip.budget}
+            currency={currency}
+            exchangeRate={trip.exchange_rate}
+            color="#6366f1"
+            hint="Meta definida para a viagem"
+          />
+        )}
         <BudgetCard
-          label="Orçamento estimado"
+          label={trip.budget ? 'Projetado' : 'Orçamento projetado'}
           value={estimado}
           currency={currency}
-          color="#f59e0b"
-          hint="Melhor opção por categoria (aberta + fechada)"
+          exchangeRate={trip.exchange_rate}
+          color={trip.budget && estimado > trip.budget ? '#ef4444' : '#f59e0b'}
+          hint={trip.budget
+            ? estimado > trip.budget
+              ? `${fmtCurrency(estimado - trip.budget, currency)} acima da estimativa`
+              : `${fmtCurrency(trip.budget - estimado, currency)} abaixo da estimativa`
+            : 'Melhor opção por categoria'}
         />
         <BudgetCard
           label="Comprometido"
           value={fechado}
           currency={currency}
+          exchangeRate={trip.exchange_rate}
           color="#10b981"
           hint="Apenas categorias fechadas"
         />
@@ -407,13 +423,20 @@ function DocsSection({ trip, categories, onFolderUrlSave }) {
   )
 }
 
-function BudgetCard({ label, value, currency, color, hint }) {
+function BudgetCard({ label, value, currency, exchangeRate, color, hint }) {
+  const showBrl = currency !== 'BRL' && exchangeRate > 1
+  const brlValue = value * (exchangeRate || 1)
   return (
     <div style={{ background: '#fff', border: `2px solid ${color}30`, borderRadius: 12, padding: '14px 16px' }}>
       <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
       <div style={{ fontSize: 20, fontWeight: 700, margin: '6px 0 2px', color: '#1e293b' }}>
         {fmtCurrency(value, currency)}
       </div>
+      {showBrl && (
+        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 2 }}>
+          ≈ {fmtCurrency(brlValue, 'BRL')}
+        </div>
+      )}
       <div style={{ fontSize: 11, color: '#94a3b8' }}>{hint}</div>
     </div>
   )

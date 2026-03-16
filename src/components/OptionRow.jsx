@@ -106,6 +106,11 @@ export default function OptionRow({ option, currency, tipo, numPeople, locked, o
                 {porPessoa && <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 400, marginLeft: 4 }}>p/ pessoa</span>}
               </span>
             )}
+            {option.campos?.num_parcelas > 1 && option.value != null && (
+              <span style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', borderRadius: 4, padding: '2px 6px' }}>
+                {option.campos.num_parcelas}x {fmtCurrency(totalValue / option.campos.num_parcelas, currency)}
+              </span>
+            )}
             {option.url && (
               <a
                 href={option.url}

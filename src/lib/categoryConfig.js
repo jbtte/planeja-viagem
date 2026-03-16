@@ -18,6 +18,8 @@ export const TIPO_CAMPOS = {
     { key: 'duracao', label: 'Duração total', type: 'text' },
     { key: 'bagagem', label: 'Bagagem incluída', type: 'boolean' },
     { key: 'por_pessoa', label: 'Preço por pessoa', type: 'boolean' },
+    { key: 'num_parcelas', label: 'Parcelas', type: 'number' },
+    { key: 'cancelamento_ate', label: 'Cancelamento gratuito até', type: 'date' },
     // escalas_ida e escalas_volta são arrays gerenciados separadamente na UI
   ],
   hotel: [
@@ -29,6 +31,7 @@ export const TIPO_CAMPOS = {
     { key: 'regime', label: 'Regime', type: 'text' },
     { key: 'reserva_via', label: 'Reserva via', type: 'text' },
     { key: 'reservado', label: 'Reserva confirmada', type: 'boolean' },
+    { key: 'num_parcelas', label: 'Parcelas', type: 'number', showIf: { key: 'reservado', value: true } },
     { key: 'cancelamento_ate', label: 'Cancelamento gratuito até', type: 'date', showIf: { key: 'reservado', value: true } },
     // diarias é calculado automaticamente a partir de check_in e check_out
   ],
