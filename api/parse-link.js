@@ -66,26 +66,31 @@ export default async function handler(req, res) {
   try {
     const jinaRes = await fetch(`https://r.jina.ai/${url}`, {
       headers: { Accept: 'text/plain' },
+      signal: AbortSignal.timeout(15000),
     })
     pageText = await jinaRes.text()
   } catch {
     return res.status(502).json({ error: 'Não foi possível acessar a página' })
   }
 
-  // Limita tokens (~8k caracteres)
-  const truncated = pageText.slice(0, 8000)
+  // Verifica se Jina retornou conteúdo útil (não uma página de bloqueio)
+  if (pageText.length < 200) {
+    return res.status(422).json({ error: 'A página não retornou conteúdo suficiente. Tente copiar o link direto do resultado de busca.' })
+  }
+
+  const truncated = pageText.slice(0, 10000)
   const camposPrompt = CAMPOS_PROMPT[tipo] ?? '"campos": {}'
 
   const prompt = `Você é um assistente especializado em extrair informações de páginas de viagem.
 
-A partir do conteúdo abaixo, extraia as informações e retorne APENAS um JSON válido, sem explicações.
+A partir do conteúdo abaixo, extraia as informações e retorne APENAS um JSON válido, sem markdown, sem explicações, sem blocos de código.
 
 Tipo de categoria: ${tipo}
 
 Retorne exatamente neste formato (use null para campos não encontrados):
 {
-  "name": "nome descritivo e conciso da opção (ex: LATAM - Voo direto GRU→LIS - 23/06)",
-  "value": valor numérico total (apenas o número, sem símbolo de moeda),${camposPrompt},
+  "name": "nome descritivo e conciso da opção (ex: Hotel Sheraton Lisboa - 5 noites)",
+  "value": 1234.56,${camposPrompt},
   "url": "${url}"
 }
 
@@ -93,28 +98,50 @@ Conteúdo da página:
 ${truncated}`
 
   // Chama Gemini
-  let parsed
+  let geminiData
   try {
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(20000),
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { responseMimeType: 'application/json' },
         }),
       }
     )
-
-    const geminiData = await geminiRes.json()
-    const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
-
-    if (!text) throw new Error('Resposta vazia do Gemini')
-    parsed = JSON.parse(text)
+    geminiData = await geminiRes.json()
   } catch (err) {
-    return res.status(500).json({ error: 'Não foi possível extrair os dados da página' })
+    console.error('Gemini fetch error:', err)
+    return res.status(500).json({ error: 'Erro ao conectar com o Gemini' })
   }
 
-  return res.json({ data: parsed })
+  // Verifica erros da API do Gemini
+  if (geminiData.error) {
+    console.error('Gemini API error:', geminiData.error)
+    return res.status(500).json({ error: `Gemini: ${geminiData.error.message}` })
+  }
+
+  const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!text) {
+    console.error('Gemini empty response:', JSON.stringify(geminiData))
+    return res.status(500).json({ error: 'Gemini não retornou dados' })
+  }
+
+  // Extrai JSON mesmo que venha com markdown ao redor
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    console.error('No JSON in Gemini response:', text)
+    return res.status(500).json({ error: 'Resposta do Gemini não contém JSON válido' })
+  }
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0])
+    return res.json({ data: parsed })
+  } catch (err) {
+    console.error('JSON parse error:', text)
+    return res.status(500).json({ error: 'Não foi possível interpretar a resposta do Gemini' })
+  }
 }
