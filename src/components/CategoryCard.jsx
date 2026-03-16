@@ -391,6 +391,8 @@ const inputStyle = {
   width: '100%',
   boxSizing: 'border-box',
   outline: 'none',
+  color: '#1e293b',
+  background: '#fff',
 }
 
 const btnPrimary = {
