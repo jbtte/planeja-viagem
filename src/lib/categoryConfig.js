@@ -27,6 +27,9 @@ export const TIPO_CAMPOS = {
     { key: 'cafe_manha', label: 'Café da manhã', type: 'boolean' },
     { key: 'bairro', label: 'Bairro / localização', type: 'text' },
     { key: 'regime', label: 'Regime', type: 'text' },
+    { key: 'reserva_via', label: 'Reserva via', type: 'text' },
+    { key: 'reservado', label: 'Reserva confirmada', type: 'boolean' },
+    { key: 'cancelamento_ate', label: 'Cancelamento gratuito até', type: 'date', showIf: { key: 'reservado', value: true } },
     // diarias é calculado automaticamente a partir de check_in e check_out
   ],
   carro: [

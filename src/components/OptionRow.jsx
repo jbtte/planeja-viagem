@@ -10,6 +10,16 @@ export default function OptionRow({ option, currency, tipo, numPeople, locked, o
     ? Math.round((new Date(option.campos.check_out) - new Date(option.campos.check_in)) / 86400000)
     : null
 
+  const cancelamentoAlerta = (() => {
+    const d = option.campos?.cancelamento_ate
+    if (!d) return null
+    const dias = Math.round((new Date(d) - new Date()) / 86400000)
+    if (dias < 0) return { texto: `Cancelamento expirou em ${fmtDate(d)}`, cor: '#ef4444' }
+    if (dias <= 7) return { texto: `Cancelamento gratuito: ${fmtDate(d)} (${dias}d)`, cor: '#ef4444' }
+    if (dias <= 30) return { texto: `Cancelamento gratuito: ${fmtDate(d)} (${dias}d)`, cor: '#f59e0b' }
+    return { texto: `Cancelamento gratuito até ${fmtDate(d)}`, cor: '#10b981' }
+  })()
+
   const campoEntries = campos
     .map(campo => {
       // Não exibir por_pessoa como tag — já aparece no valor
@@ -136,6 +146,13 @@ export default function OptionRow({ option, currency, tipo, numPeople, locked, o
               </div>
             )
           })}
+
+          {/* Alerta de cancelamento */}
+          {cancelamentoAlerta && (
+            <div style={{ fontSize: 12, color: cancelamentoAlerta.cor, fontWeight: 600, marginTop: 5 }}>
+              ⚠️ {cancelamentoAlerta.texto}
+            </div>
+          )}
 
           {/* Notes */}
           {option.notes && (

@@ -18,7 +18,10 @@ const CAMPOS_PROMPT = {
     "estrelas": número inteiro de 1 a 5,
     "cafe_manha": true ou false,
     "bairro": "bairro ou região do hotel",
-    "regime": "tipo de regime (ex: B&B, Meia Pensão, All Inclusive)"
+    "regime": "tipo de regime (ex: B&B, Meia Pensão, All Inclusive)",
+    "reserva_via": "nome do site ou 'Direto com o hotel'",
+    "reservado": true ou false,
+    "cancelamento_ate": "data limite para cancelamento gratuito no formato YYYY-MM-DD (null se não encontrado)"
   }`,
   carro: `
   "campos": {
