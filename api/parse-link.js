@@ -3,9 +3,14 @@ const CAMPOS_PROMPT = {
   "campos": {
     "cia": "nome da companhia aérea (ex: LATAM, Gol, TAP)",
     "voo": "número do voo (ex: LA3040)",
-    "escala": true ou false,
+    "data_ida": "data de ida no formato YYYY-MM-DD",
+    "data_volta": "data de volta no formato YYYY-MM-DD (null se só ida)",
+    "duracao": "duração total do voo (ex: 10h30)",
     "bagagem": true ou false (bagagem despachada inclusa no preço),
-    "duracao": "duração total do voo (ex: 10h30)"
+    "por_pessoa": true ou false (o preço informado é por pessoa?),
+    "escala": true ou false,
+    "escala_local": "cidade ou aeroporto da escala (null se sem escala)",
+    "escala_duracao": "duração da escala (ex: 2h15) (null se sem escala)"
   }`,
   hotel: `
   "campos": {

@@ -212,6 +212,7 @@ export default function CategoryCard({
               currency={currency}
               tipo={category.tipo}
               locked={isFechado}
+              numPeople={tripNumPeople}
               onSelect={() => onOptionStatusChange(opt.id, 'selecionado')}
               onDeselect={() => onOptionStatusChange(opt.id, 'em_pesquisa')}
               onDescart={() => onOptionStatusChange(opt.id, 'descartado')}
@@ -294,38 +295,45 @@ export default function CategoryCard({
             {/* Campos específicos do tipo */}
             {campos.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {campos.map(campo => (
-                  <Field key={campo.key} label={campo.label}>
-                    {campo.type === 'boolean' ? (
-                      <select
-                        style={inputStyle}
-                        value={
-                          optForm.campos[campo.key] === true
-                            ? 'true'
-                            : optForm.campos[campo.key] === false
-                            ? 'false'
-                            : ''
-                        }
-                        onChange={e =>
-                          setCampo(campo.key, e.target.value === '' ? undefined : e.target.value === 'true')
-                        }
-                      >
-                        <option value="">—</option>
-                        <option value="true">Sim</option>
-                        <option value="false">Não</option>
-                      </select>
-                    ) : (
-                      <input
-                        type={campo.type === 'number' ? 'number' : 'text'}
-                        style={inputStyle}
-                        value={optForm.campos[campo.key] ?? ''}
-                        onChange={e => setCampo(campo.key, e.target.value)}
-                        step={campo.type === 'number' ? '0.01' : undefined}
-                        min={campo.type === 'number' ? '0' : undefined}
-                      />
-                    )}
-                  </Field>
-                ))}
+                {campos.map(campo => {
+                  // showIf: só mostra se o campo dependente tiver o valor esperado
+                  if (campo.showIf) {
+                    const depVal = optForm.campos[campo.showIf.key]
+                    if (depVal !== campo.showIf.value) return null
+                  }
+                  return (
+                    <Field key={campo.key} label={campo.label}>
+                      {campo.type === 'boolean' ? (
+                        <select
+                          style={inputStyle}
+                          value={
+                            optForm.campos[campo.key] === true
+                              ? 'true'
+                              : optForm.campos[campo.key] === false
+                              ? 'false'
+                              : ''
+                          }
+                          onChange={e =>
+                            setCampo(campo.key, e.target.value === '' ? undefined : e.target.value === 'true')
+                          }
+                        >
+                          <option value="">—</option>
+                          <option value="true">Sim</option>
+                          <option value="false">Não</option>
+                        </select>
+                      ) : (
+                        <input
+                          type={campo.type === 'number' ? 'number' : campo.type === 'date' ? 'date' : 'text'}
+                          style={inputStyle}
+                          value={optForm.campos[campo.key] ?? ''}
+                          onChange={e => setCampo(campo.key, e.target.value)}
+                          step={campo.type === 'number' ? '0.01' : undefined}
+                          min={campo.type === 'number' ? '0' : undefined}
+                        />
+                      )}
+                    </Field>
+                  )
+                })}
               </div>
             )}
 

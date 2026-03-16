@@ -157,7 +157,7 @@ export default function Trip() {
 
   if (!trip) return <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Carregando...</div>
 
-  const { estimado, fechado } = calcBudgets(categories)
+  const { estimado, fechado } = calcBudgets(categories, trip.num_people)
   const currency = trip.currency
 
   return (
@@ -216,6 +216,7 @@ export default function Trip() {
             onAddOption={option => addOption(cat.id, option)}
             onOptionStatusChange={(optId, status) => updateOptionStatus(cat.id, optId, status)}
             onDeleteOption={optId => deleteOption(cat.id, optId)}
+            numPeople={trip.num_people}
             onDelete={() => deleteCategory(cat.id)}
           />
         ))}
@@ -320,7 +321,7 @@ function Field({ label, children }) {
   )
 }
 
-function calcBudgets(categories) {
+function calcBudgets(categories, numPeople) {
   let estimado = 0
   let fechado = 0
   for (const cat of categories) {
@@ -332,7 +333,8 @@ function calcBudgets(categories) {
       options
         .filter(o => o.status !== 'descartado')
         .sort((a, b) => (Number(a.value) || 0) - (Number(b.value) || 0))[0]
-    const val = Number(best?.value ?? 0)
+    const rawVal = Number(best?.value ?? 0)
+    const val = best?.campos?.por_pessoa ? rawVal * (numPeople ?? 1) : rawVal
     estimado += val
     if (cat.status === 'fechado') fechado += val
   }

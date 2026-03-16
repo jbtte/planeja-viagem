@@ -13,9 +13,14 @@ export const TIPO_CAMPOS = {
   passagens: [
     { key: 'cia', label: 'Cia aérea', type: 'text' },
     { key: 'voo', label: 'Nº do voo', type: 'text' },
-    { key: 'escala', label: 'Com escala', type: 'boolean' },
+    { key: 'data_ida', label: 'Data de ida', type: 'date' },
+    { key: 'data_volta', label: 'Data de volta', type: 'date' },
+    { key: 'duracao', label: 'Duração total', type: 'text' },
     { key: 'bagagem', label: 'Bagagem incluída', type: 'boolean' },
-    { key: 'duracao', label: 'Duração', type: 'text' },
+    { key: 'por_pessoa', label: 'Preço por pessoa', type: 'boolean' },
+    { key: 'escala', label: 'Com escala', type: 'boolean' },
+    { key: 'escala_local', label: 'Local da escala', type: 'text', showIf: { key: 'escala', value: true } },
+    { key: 'escala_duracao', label: 'Duração da escala', type: 'text', showIf: { key: 'escala', value: true } },
   ],
   hotel: [
     { key: 'estrelas', label: 'Estrelas', type: 'number' },

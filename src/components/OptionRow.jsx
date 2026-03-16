@@ -1,17 +1,30 @@
 import { TIPO_CAMPOS } from '../lib/categoryConfig'
 
-export default function OptionRow({ option, currency, tipo, locked, onSelect, onDeselect, onDescart, onDelete }) {
+export default function OptionRow({ option, currency, tipo, numPeople, locked, onSelect, onDeselect, onDescart, onDelete }) {
   const campos = TIPO_CAMPOS[tipo] ?? []
   const isSelected = option.status === 'selecionado'
   const isDescartado = option.status === 'descartado'
+  const porPessoa = option.campos?.por_pessoa === true
 
   const campoEntries = campos
     .map(campo => {
+      // Não exibir por_pessoa como tag — já aparece no valor
+      if (campo.key === 'por_pessoa') return null
       const val = option.campos?.[campo.key]
       if (val === undefined || val === null || val === '') return null
-      return { label: campo.label, display: campo.type === 'boolean' ? (val ? 'Sim' : 'Não') : String(val) }
+      // showIf: omite campos condicionais quando a condição não é atendida
+      if (campo.showIf && option.campos?.[campo.showIf.key] !== campo.showIf.value) return null
+      let display
+      if (campo.type === 'boolean') display = val ? 'Sim' : 'Não'
+      else if (campo.type === 'date') display = fmtDate(val)
+      else display = String(val)
+      return { label: campo.label, display }
     })
     .filter(Boolean)
+
+  const totalValue = porPessoa && numPeople > 1
+    ? Number(option.value) * numPeople
+    : Number(option.value)
 
   return (
     <div
@@ -67,7 +80,11 @@ export default function OptionRow({ option, currency, tipo, locked, onSelect, on
             </span>
             {option.value != null && (
               <span style={{ fontSize: 14, fontWeight: 600, color: isSelected ? '#059669' : '#374151' }}>
-                {fmtCurrency(option.value, currency)}
+                {porPessoa && numPeople > 1
+                  ? `${fmtCurrency(option.value, currency)} × ${numPeople} = ${fmtCurrency(totalValue, currency)}`
+                  : fmtCurrency(option.value, currency)
+                }
+                {porPessoa && <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 400, marginLeft: 4 }}>p/ pessoa</span>}
               </span>
             )}
             {option.url && (
@@ -129,6 +146,12 @@ function fmtCurrency(val, currency) {
   } catch {
     return `${currency} ${Number(val).toFixed(2)}`
   }
+}
+
+function fmtDate(d) {
+  if (!d) return ''
+  const [y, m, day] = d.split('-')
+  return `${day}/${m}/${y}`
 }
 
 const tag = {
