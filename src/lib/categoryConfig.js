@@ -18,9 +18,7 @@ export const TIPO_CAMPOS = {
     { key: 'duracao', label: 'Duração total', type: 'text' },
     { key: 'bagagem', label: 'Bagagem incluída', type: 'boolean' },
     { key: 'por_pessoa', label: 'Preço por pessoa', type: 'boolean' },
-    { key: 'escala', label: 'Com escala', type: 'boolean' },
-    { key: 'escala_local', label: 'Local da escala', type: 'text', showIf: { key: 'escala', value: true } },
-    { key: 'escala_duracao', label: 'Duração da escala', type: 'text', showIf: { key: 'escala', value: true } },
+    // escalas_ida e escalas_volta são arrays gerenciados separadamente na UI
   ],
   hotel: [
     { key: 'estrelas', label: 'Estrelas', type: 'number' },

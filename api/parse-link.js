@@ -8,9 +8,8 @@ const CAMPOS_PROMPT = {
     "duracao": "duração total do voo (ex: 10h30)",
     "bagagem": true ou false (bagagem despachada inclusa no preço),
     "por_pessoa": true ou false (o preço informado é por pessoa?),
-    "escala": true ou false,
-    "escala_local": "cidade ou aeroporto da escala (null se sem escala)",
-    "escala_duracao": "duração da escala (ex: 2h15) (null se sem escala)"
+    "escalas_ida": [{ "local": "cidade/aeroporto", "duracao": "2h30" }],
+    "escalas_volta": [{ "local": "cidade/aeroporto", "duracao": "1h45" }]
   }`,
   hotel: `
   "campos": {

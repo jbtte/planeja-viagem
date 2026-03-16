@@ -111,6 +111,23 @@ export default function OptionRow({ option, currency, tipo, numPeople, locked, o
             </div>
           )}
 
+          {/* Escalas */}
+          {['ida', 'volta'].map(trecho => {
+            const key = trecho === 'ida' ? 'escalas_ida' : 'escalas_volta'
+            const escalas = (option.campos?.[key] ?? []).filter(e => e.local)
+            if (escalas.length === 0) return null
+            return (
+              <div key={trecho} style={{ marginTop: 5 }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', marginRight: 4 }}>Escala {trecho}:</span>
+                {escalas.map((e, i) => (
+                  <span key={i} style={{ ...tag, marginRight: 4 }}>
+                    <strong>{e.local}</strong>{e.duracao ? ` · ${e.duracao}` : ''}
+                  </span>
+                ))}
+              </div>
+            )
+          })}
+
           {/* Notes */}
           {option.notes && (
             <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{option.notes}</div>

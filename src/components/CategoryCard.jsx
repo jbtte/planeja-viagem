@@ -54,6 +54,33 @@ export default function CategoryCard({
     setOptForm(f => ({ ...f, campos: { ...f.campos, [key]: value } }))
   }
 
+  const isPassagem = category.tipo === 'passagens'
+
+  function addEscala(trecho) {
+    const key = trecho === 'ida' ? 'escalas_ida' : 'escalas_volta'
+    setOptForm(f => ({
+      ...f,
+      campos: { ...f.campos, [key]: [...(f.campos[key] ?? []), { local: '', duracao: '' }] },
+    }))
+  }
+
+  function updateEscala(trecho, index, field, value) {
+    const key = trecho === 'ida' ? 'escalas_ida' : 'escalas_volta'
+    setOptForm(f => {
+      const arr = [...(f.campos[key] ?? [])]
+      arr[index] = { ...arr[index], [field]: value }
+      return { ...f, campos: { ...f.campos, [key]: arr } }
+    })
+  }
+
+  function removeEscala(trecho, index) {
+    const key = trecho === 'ida' ? 'escalas_ida' : 'escalas_volta'
+    setOptForm(f => {
+      const arr = (f.campos[key] ?? []).filter((_, i) => i !== index)
+      return { ...f, campos: { ...f.campos, [key]: arr } }
+    })
+  }
+
   // For gastos_diarios, value is derived from campos
   const calculatedValue =
     category.tipo === 'gastos_diarios'
@@ -337,6 +364,45 @@ export default function CategoryCard({
               </div>
             )}
 
+            {/* Escalas — só para passagens */}
+            {isPassagem && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {['ida', 'volta'].map(trecho => {
+                  const key = trecho === 'ida' ? 'escalas_ida' : 'escalas_volta'
+                  const escalas = optForm.campos[key] ?? []
+                  return (
+                    <div key={trecho} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: escalas.length > 0 ? 8 : 0 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
+                          Escalas na {trecho}
+                        </span>
+                        <button type="button" onClick={() => addEscala(trecho)} style={btnAddEscala}>
+                          + Adicionar
+                        </button>
+                      </div>
+                      {escalas.map((escala, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                          <input
+                            style={{ ...inputStyle, flex: 2 }}
+                            placeholder="Local (ex: Miami)"
+                            value={escala.local}
+                            onChange={e => updateEscala(trecho, i, 'local', e.target.value)}
+                          />
+                          <input
+                            style={{ ...inputStyle, flex: 1 }}
+                            placeholder="Duração (ex: 2h30)"
+                            value={escala.duracao}
+                            onChange={e => updateEscala(trecho, i, 'duracao', e.target.value)}
+                          />
+                          <button type="button" onClick={() => removeEscala(trecho, i)} style={{ ...btnAction, color: '#fca5a5', fontSize: 16 }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
             {/* Sugestão de custo para gastos_diarios */}
             {category.tipo === 'gastos_diarios' && tripDestination && (
               <div>
@@ -501,6 +567,16 @@ const btnSmallGray = {
   borderRadius: 6,
   padding: '5px 10px',
   fontSize: 12,
+  cursor: 'pointer',
+}
+
+const btnAddEscala = {
+  background: 'transparent',
+  border: '1px solid #d1d5db',
+  borderRadius: 5,
+  padding: '3px 8px',
+  fontSize: 11,
+  color: '#475569',
   cursor: 'pointer',
 }
 
