@@ -6,6 +6,10 @@ export default function OptionRow({ option, currency, tipo, numPeople, locked, o
   const isDescartado = option.status === 'descartado'
   const porPessoa = option.campos?.por_pessoa === true
 
+  const diarias = tipo === 'hotel' && option.campos?.check_in && option.campos?.check_out
+    ? Math.round((new Date(option.campos.check_out) - new Date(option.campos.check_in)) / 86400000)
+    : null
+
   const campoEntries = campos
     .map(campo => {
       // Não exibir por_pessoa como tag — já aparece no valor
@@ -21,6 +25,11 @@ export default function OptionRow({ option, currency, tipo, numPeople, locked, o
       return { label: campo.label, display }
     })
     .filter(Boolean)
+
+  // Injeta diárias calculadas para hotel
+  if (diarias !== null && diarias > 0) {
+    campoEntries.push({ label: 'Diárias', display: String(diarias) })
+  }
 
   const totalValue = porPessoa && numPeople > 1
     ? Number(option.value) * numPeople

@@ -21,10 +21,13 @@ export const TIPO_CAMPOS = {
     // escalas_ida e escalas_volta são arrays gerenciados separadamente na UI
   ],
   hotel: [
+    { key: 'check_in', label: 'Check-in', type: 'date' },
+    { key: 'check_out', label: 'Check-out', type: 'date' },
     { key: 'estrelas', label: 'Estrelas', type: 'number' },
     { key: 'cafe_manha', label: 'Café da manhã', type: 'boolean' },
     { key: 'bairro', label: 'Bairro / localização', type: 'text' },
     { key: 'regime', label: 'Regime', type: 'text' },
+    // diarias é calculado automaticamente a partir de check_in e check_out
   ],
   carro: [
     { key: 'categoria', label: 'Categoria', type: 'text' },

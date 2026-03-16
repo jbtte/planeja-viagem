@@ -55,6 +55,11 @@ export default function CategoryCard({
   }
 
   const isPassagem = category.tipo === 'passagens'
+  const isHotel = category.tipo === 'hotel'
+
+  const diarias = isHotel && optForm.campos.check_in && optForm.campos.check_out
+    ? Math.round((new Date(optForm.campos.check_out) - new Date(optForm.campos.check_in)) / 86400000)
+    : null
 
   function addEscala(trecho) {
     const key = trecho === 'ida' ? 'escalas_ida' : 'escalas_volta'
@@ -361,6 +366,21 @@ export default function CategoryCard({
                     </Field>
                   )
                 })}
+              </div>
+            )}
+
+            {/* Diárias calculadas — só para hotel */}
+            {isHotel && diarias !== null && (
+              <div style={{
+                background: diarias > 0 ? '#f0fdf4' : '#fff7ed',
+                border: `1px solid ${diarias > 0 ? '#bbf7d0' : '#fed7aa'}`,
+                borderRadius: 8,
+                padding: '8px 12px',
+                fontSize: 13,
+                color: diarias > 0 ? '#065f46' : '#92400e',
+                fontWeight: 600,
+              }}>
+                {diarias > 0 ? `${diarias} diária${diarias > 1 ? 's' : ''}` : 'Data de check-out deve ser após check-in'}
               </div>
             )}
 

@@ -13,6 +13,8 @@ const CAMPOS_PROMPT = {
   }`,
   hotel: `
   "campos": {
+    "check_in": "data de check-in no formato YYYY-MM-DD",
+    "check_out": "data de check-out no formato YYYY-MM-DD",
     "estrelas": número inteiro de 1 a 5,
     "cafe_manha": true ou false,
     "bairro": "bairro ou região do hotel",
@@ -69,17 +71,28 @@ export default async function handler(req, res) {
   let pageText
   try {
     const jinaRes = await fetch(`https://r.jina.ai/${url}`, {
-      headers: { Accept: 'text/plain' },
-      signal: AbortSignal.timeout(15000),
+      headers: {
+        'Accept': 'text/plain',
+        'X-Return-Format': 'markdown',
+        'X-No-Cache': 'true',
+        'X-With-Generated-Alt': 'true',
+      },
+      signal: AbortSignal.timeout(30000),
     })
     pageText = await jinaRes.text()
   } catch {
     return res.status(502).json({ error: 'Não foi possível acessar a página' })
   }
 
-  // Verifica se Jina retornou conteúdo útil (não uma página de bloqueio)
-  if (pageText.length < 200) {
-    return res.status(422).json({ error: 'A página não retornou conteúdo suficiente. Tente copiar o link direto do resultado de busca.' })
+  // Verifica se Jina retornou conteúdo útil
+  if (
+    pageText.length < 200 ||
+    pageText.toLowerCase().includes('captcha') ||
+    pageText.toLowerCase().includes('access denied')
+  ) {
+    return res.status(422).json({
+      error: 'Este site bloqueou a leitura automática. Abra a página do hotel específico (não lista de resultados) ou preencha manualmente.',
+    })
   }
 
   const truncated = pageText.slice(0, 10000)
