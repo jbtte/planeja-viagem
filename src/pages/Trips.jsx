@@ -2,8 +2,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Modal from '../components/Modal'
+import { TIPO_LABELS } from '../lib/categoryConfig'
 
 const CURRENCIES = ['BRL', 'USD', 'EUR', 'ARS', 'CLP', 'PEN', 'COP', 'GBP']
+
+// Categorias pré-selecionadas por padrão
+const DEFAULT_CATEGORIAS = ['passagens', 'hotel', 'gastos_diarios']
 
 const EMPTY_FORM = {
   destination: '',
@@ -20,6 +24,7 @@ export default function Trips() {
   const [user, setUser] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [categoriasSelecionadas, setCategoriasSelecionadas] = useState(DEFAULT_CATEGORIAS)
   const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
 
@@ -40,16 +45,38 @@ export default function Trips() {
     setForm(f => ({ ...f, [field]: value }))
   }
 
+  function toggleCategoria(tipo) {
+    setCategoriasSelecionadas(prev =>
+      prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo]
+    )
+  }
+
   async function handleCreate(e) {
     e.preventDefault()
     setSaving(true)
-    const { data, error } = await supabase
+
+    const { data: trip, error } = await supabase
       .from('trips')
       .insert([{ ...form, user_id: user.id, exchange_rate: Number(form.exchange_rate) || 1 }])
       .select()
       .single()
+
+    if (error) { setSaving(false); return }
+
+    // Cria as categorias selecionadas de uma vez
+    if (categoriasSelecionadas.length > 0) {
+      await supabase.from('categories').insert(
+        categoriasSelecionadas.map((tipo, i) => ({
+          trip_id: trip.id,
+          tipo,
+          name: TIPO_LABELS[tipo],
+          sort_order: i,
+        }))
+      )
+    }
+
     setSaving(false)
-    if (!error) navigate(`/trip/${data.id}`)
+    navigate(`/trip/${trip.id}`)
   }
 
   async function handleDelete(e, tripId) {
@@ -57,6 +84,12 @@ export default function Trips() {
     if (!confirm('Deletar essa viagem? Essa ação não pode ser desfeita.')) return
     await supabase.from('trips').delete().eq('id', tripId)
     setTrips(t => t.filter(tr => tr.id !== tripId))
+  }
+
+  function openModal() {
+    setForm(EMPTY_FORM)
+    setCategoriasSelecionadas(DEFAULT_CATEGORIAS)
+    setShowModal(true)
   }
 
   return (
@@ -74,7 +107,7 @@ export default function Trips() {
         </div>
       </div>
 
-      <button onClick={() => { setForm(EMPTY_FORM); setShowModal(true) }} style={{ ...btnPrimary, width: '100%', marginBottom: 20 }}>
+      <button onClick={openModal} style={{ ...btnPrimary, width: '100%', marginBottom: 20 }}>
         + Nova viagem
       </button>
 
@@ -121,6 +154,7 @@ export default function Trips() {
                 onChange={e => set('destination', e.target.value)}
                 placeholder="Ex: Lisboa, Portugal"
                 required
+                autoFocus
               />
             </Field>
 
@@ -159,12 +193,47 @@ export default function Trips() {
 
             <Field label="Observações">
               <textarea
-                style={{ ...inputStyle, minHeight: 60, resize: 'vertical' }}
+                style={{ ...inputStyle, minHeight: 56, resize: 'vertical' }}
                 value={form.notes}
                 onChange={e => set('notes', e.target.value)}
                 placeholder="Motivação da viagem, contexto..."
               />
             </Field>
+
+            {/* Seleção de categorias */}
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 8 }}>
+                Categorias para começar
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {Object.entries(TIPO_LABELS).map(([tipo, label]) => {
+                  const ativo = categoriasSelecionadas.includes(tipo)
+                  return (
+                    <button
+                      key={tipo}
+                      type="button"
+                      onClick={() => toggleCategoria(tipo)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 20,
+                        fontSize: 13,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        border: `1.5px solid ${ativo ? '#3b82f6' : '#e2e8f0'}`,
+                        background: ativo ? '#eff6ff' : '#f8fafc',
+                        color: ativo ? '#1d4ed8' : '#64748b',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {ativo ? '✓ ' : ''}{label}
+                    </button>
+                  )
+                })}
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>
+                Você pode adicionar ou remover categorias depois.
+              </div>
+            </div>
 
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <button type="button" onClick={() => setShowModal(false)} style={{ ...btnSecondary, flex: 1 }}>Cancelar</button>

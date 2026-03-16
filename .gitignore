@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Project context (internal)
+PROJECT.md
+
 # Environment variables
 .env
 .env.local
