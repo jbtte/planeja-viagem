@@ -25,6 +25,7 @@ const CAMPOS_PROMPT = {
   }`,
   carro: `
   "campos": {
+    "data_retirada": "data de retirada do carro no formato YYYY-MM-DD",
     "categoria": "categoria do veículo (ex: Econômico, Intermediário, SUV)",
     "transmissao": "Automático ou Manual",
     "cobertura": true ou false (cobertura total inclusa),
@@ -32,6 +33,7 @@ const CAMPOS_PROMPT = {
   }`,
   passeios: `
   "campos": {
+    "data": "data do passeio no formato YYYY-MM-DD",
     "duracao_horas": número de horas,
     "inclui_transporte": true ou false,
     "idioma": "idioma do passeio (ex: Português, Inglês)"
@@ -44,11 +46,13 @@ const CAMPOS_PROMPT = {
   }`,
   translados: `
   "campos": {
+    "data": "data do translado no formato YYYY-MM-DD",
     "tipo": "tipo de translado (ex: Transfer privativo, Shuttle)",
     "percurso": "descrição do percurso (ex: Aeroporto → Hotel)"
   }`,
   restaurantes: `
   "campos": {
+    "data": "data da refeição no formato YYYY-MM-DD",
     "tipo_cozinha": "tipo de cozinha (ex: Italiana, Japonesa)",
     "preco_medio_pessoa": valor numérico médio por pessoa
   }`,

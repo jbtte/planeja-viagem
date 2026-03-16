@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import CategoryCard from '../components/CategoryCard'
+import CoverageGrid from '../components/CoverageGrid'
 import Modal from '../components/Modal'
 import { TIPO_LABELS } from '../lib/categoryConfig'
 
@@ -136,6 +137,34 @@ export default function Trip() {
     )
   }
 
+  async function updateOption(catId, optionId, data) {
+    const { data: updated, error } = await supabase
+      .from('options')
+      .update(data)
+      .eq('id', optionId)
+      .select()
+      .single()
+    if (!error) {
+      setCategories(cats =>
+        cats.map(c =>
+          c.id === catId
+            ? { ...c, options: (c.options ?? []).map(o => o.id === optionId ? updated : o) }
+            : c
+        )
+      )
+    }
+  }
+
+  async function updateCategoryNotionUrl(catId, notionUrl) {
+    await supabase.from('categories').update({ notion_url: notionUrl }).eq('id', catId)
+    setCategories(cats => cats.map(c => c.id === catId ? { ...c, notion_url: notionUrl } : c))
+  }
+
+  async function updateTripNotionFolderUrl(url) {
+    await supabase.from('trips').update({ notion_folder_url: url }).eq('id', id)
+    setTrip(t => ({ ...t, notion_folder_url: url }))
+  }
+
   async function handleGenerateSummary() {
     setLoadingSummary(true)
     setSummary('')
@@ -203,6 +232,16 @@ export default function Trip() {
         />
       </div>
 
+      {/* Grade de cobertura */}
+      <CoverageGrid trip={trip} categories={categories} />
+
+      {/* Documentos da Viagem */}
+      <DocsSection
+        trip={trip}
+        categories={categories}
+        onFolderUrlSave={updateTripNotionFolderUrl}
+      />
+
       {/* Categories */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {categories.map(cat => (
@@ -218,6 +257,8 @@ export default function Trip() {
             onDeleteOption={optId => deleteOption(cat.id, optId)}
             numPeople={trip.num_people}
             onDelete={() => deleteCategory(cat.id)}
+            onNotionUrlSave={url => updateCategoryNotionUrl(cat.id, url)}
+            onUpdateOption={(optId, data) => updateOption(cat.id, optId, data)}
           />
         ))}
       </div>
@@ -295,6 +336,72 @@ export default function Trip() {
             </div>
           </form>
         </Modal>
+      )}
+    </div>
+  )
+}
+
+function DocsSection({ trip, categories, onFolderUrlSave }) {
+  const [collapsed, setCollapsed] = useState(false)
+  const [folderUrl, setFolderUrl] = useState(trip.notion_folder_url ?? '')
+  const closedWithDocs = categories.filter(c => c.status === 'fechado' && c.notion_url)
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, marginBottom: 20, overflow: 'hidden' }}>
+      <div
+        style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+        onClick={() => setCollapsed(c => !c)}
+      >
+        <span style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>📁 Documentos da Viagem</span>
+        <span style={{ fontSize: 12, color: '#94a3b8' }}>{collapsed ? '▼' : '▲'}</span>
+      </div>
+      {!collapsed && (
+        <div style={{ borderTop: '1px solid #f1f5f9', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Pasta no Notion */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 5 }}>
+              Pasta no Notion
+            </div>
+            <input
+              type="url"
+              style={inputStyle}
+              value={folderUrl}
+              onChange={e => setFolderUrl(e.target.value)}
+              onBlur={() => onFolderUrlSave(folderUrl || null)}
+              placeholder="Cole o link da pasta no Notion..."
+            />
+            {folderUrl && (
+              <a href={folderUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#3b82f6', marginTop: 4, display: 'inline-block' }}>
+                Abrir pasta ↗
+              </a>
+            )}
+          </div>
+
+          {/* Documentos por categoria */}
+          {closedWithDocs.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 }}>
+                Documentos por categoria
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {closedWithDocs.map(cat => (
+                  <div key={cat.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', borderRadius: 8, padding: '8px 12px' }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{cat.name}</span>
+                    <a href={cat.notion_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#3b82f6', textDecoration: 'none', whiteSpace: 'nowrap', marginLeft: 8 }}>
+                      Ver documento ↗
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {closedWithDocs.length === 0 && (
+            <div style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
+              Documentos aparecerão aqui quando você fechar categorias e adicionar links do Notion.
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

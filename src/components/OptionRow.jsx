@@ -1,6 +1,6 @@
 import { TIPO_CAMPOS } from '../lib/categoryConfig'
 
-export default function OptionRow({ option, currency, tipo, numPeople, locked, onSelect, onDeselect, onDescart, onDelete }) {
+export default function OptionRow({ option, currency, tipo, numPeople, locked, onSelect, onDeselect, onDescart, onDelete, onEdit }) {
   const campos = TIPO_CAMPOS[tipo] ?? []
   const isSelected = option.status === 'selecionado'
   const isDescartado = option.status === 'descartado'
@@ -163,6 +163,9 @@ export default function OptionRow({ option, currency, tipo, numPeople, locked, o
         {/* Actions */}
         {!locked && (
           <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+            <button onClick={onEdit} style={btnAction} title="Editar esta opção">
+              ✏️
+            </button>
             {!isDescartado && (
               <button onClick={onDescart} style={btnAction} title="Descartar esta opção">
                 ✕

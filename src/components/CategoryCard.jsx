@@ -27,9 +27,13 @@ export default function CategoryCard({
   onOptionStatusChange,
   onDeleteOption,
   onDelete,
+  onNotionUrlSave,
+  onUpdateOption,
 }) {
   const [collapsed, setCollapsed] = useState(false)
   const [showAddOption, setShowAddOption] = useState(false)
+  const [editingOption, setEditingOption] = useState(null)
+  const [notionUrl, setNotionUrl] = useState(category.notion_url ?? '')
   const [optForm, setOptForm] = useState(EMPTY_OPT)
   const [saving, setSaving] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
@@ -163,6 +167,35 @@ export default function CategoryCard({
     setOptForm(EMPTY_OPT)
   }
 
+  function openEdit(opt) {
+    setEditingOption(opt)
+    setOptForm({
+      name: opt.name ?? '',
+      value: opt.value ?? '',
+      url: opt.url ?? '',
+      notes: opt.notes ?? '',
+      campos: opt.campos ?? {},
+    })
+    setParseError('')
+    setLinkUrl('')
+  }
+
+  async function submitEdit(e) {
+    e.preventDefault()
+    setSaving(true)
+    const value = category.tipo === 'gastos_diarios' ? calculatedValue : (Number(optForm.value) || null)
+    await onUpdateOption(editingOption.id, {
+      name: optForm.name,
+      value,
+      url: optForm.url || null,
+      notes: optForm.notes || null,
+      campos: optForm.campos,
+    })
+    setSaving(false)
+    setEditingOption(null)
+    setOptForm(EMPTY_OPT)
+  }
+
   return (
     <div
       style={{
@@ -249,6 +282,7 @@ export default function CategoryCard({
               onDeselect={() => onOptionStatusChange(opt.id, 'em_pesquisa')}
               onDescart={() => onOptionStatusChange(opt.id, 'descartado')}
               onDelete={() => onDeleteOption(opt.id)}
+              onEdit={() => openEdit(opt)}
             />
           ))}
           {!isFechado && (
@@ -263,7 +297,147 @@ export default function CategoryCard({
               </button>
             </div>
           )}
+
+          {/* Notion URL — shown when fechado */}
+          {isFechado && (
+            <div style={{ padding: '10px 16px', borderTop: '1px solid #f1f5f9' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                Documento no Notion
+              </div>
+              <input
+                type="url"
+                style={{ ...inputStyle, fontSize: 12 }}
+                value={notionUrl}
+                onChange={e => setNotionUrl(e.target.value)}
+                onBlur={() => onNotionUrlSave?.(notionUrl || null)}
+                placeholder="Cole o link do documento no Notion..."
+              />
+              {notionUrl && (
+                <a
+                  href={notionUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: 11, color: '#3b82f6', marginTop: 4, display: 'inline-block' }}
+                >
+                  Abrir no Notion ↗
+                </a>
+              )}
+            </div>
+          )}
         </div>
+      )}
+
+      {/* Edit option modal */}
+      {editingOption && (
+        <Modal
+          title={`Editar opção — ${TIPO_LABELS[category.tipo]}`}
+          onClose={() => { setEditingOption(null); setOptForm(EMPTY_OPT) }}
+        >
+          <form onSubmit={submitEdit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Field label="Nome da opção *">
+              <input
+                style={inputStyle}
+                value={optForm.name}
+                onChange={e => setOptForm(f => ({ ...f, name: e.target.value }))}
+                required
+                autoFocus
+              />
+            </Field>
+
+            {campos.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {campos.map(campo => {
+                  if (campo.showIf) {
+                    const depVal = optForm.campos[campo.showIf.key]
+                    if (depVal !== campo.showIf.value) return null
+                  }
+                  return (
+                    <Field key={campo.key} label={campo.label}>
+                      {campo.type === 'boolean' ? (
+                        <select
+                          style={inputStyle}
+                          value={optForm.campos[campo.key] === true ? 'true' : optForm.campos[campo.key] === false ? 'false' : ''}
+                          onChange={e => setCampo(campo.key, e.target.value === '' ? undefined : e.target.value === 'true')}
+                        >
+                          <option value="">—</option>
+                          <option value="true">Sim</option>
+                          <option value="false">Não</option>
+                        </select>
+                      ) : (
+                        <input
+                          type={campo.type === 'number' ? 'number' : campo.type === 'date' ? 'date' : 'text'}
+                          style={inputStyle}
+                          value={optForm.campos[campo.key] ?? ''}
+                          onChange={e => setCampo(campo.key, e.target.value)}
+                          step={campo.type === 'number' ? '0.01' : undefined}
+                          min={campo.type === 'number' ? '0' : undefined}
+                        />
+                      )}
+                    </Field>
+                  )
+                })}
+              </div>
+            )}
+
+            {isHotel && diarias !== null && (
+              <div style={{
+                background: diarias > 0 ? '#f0fdf4' : '#fff7ed',
+                border: `1px solid ${diarias > 0 ? '#bbf7d0' : '#fed7aa'}`,
+                borderRadius: 8, padding: '8px 12px', fontSize: 13,
+                color: diarias > 0 ? '#065f46' : '#92400e', fontWeight: 600,
+              }}>
+                {diarias > 0 ? `${diarias} diária${diarias > 1 ? 's' : ''}` : 'Check-out deve ser após check-in'}
+              </div>
+            )}
+
+            {isPassagem && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {['ida', 'volta'].map(trecho => {
+                  const key = trecho === 'ida' ? 'escalas_ida' : 'escalas_volta'
+                  const escalas = optForm.campos[key] ?? []
+                  return (
+                    <div key={trecho} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: escalas.length > 0 ? 8 : 0 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Escalas na {trecho}</span>
+                        <button type="button" onClick={() => addEscala(trecho)} style={btnAddEscala}>+ Adicionar</button>
+                      </div>
+                      {escalas.map((escala, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                          <input style={{ ...inputStyle, flex: 2 }} placeholder="Local" value={escala.local} onChange={e => updateEscala(trecho, i, 'local', e.target.value)} />
+                          <input style={{ ...inputStyle, flex: 1 }} placeholder="Duração" value={escala.duracao} onChange={e => updateEscala(trecho, i, 'duracao', e.target.value)} />
+                          <button type="button" onClick={() => removeEscala(trecho, i)} style={{ ...btnAction, color: '#fca5a5', fontSize: 16 }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {category.tipo === 'gastos_diarios' ? (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#065f46', fontWeight: 600 }}>
+                Total calculado: {fmtCurrency(calculatedValue, currency)}
+              </div>
+            ) : (
+              <Field label={`Valor total (${currency})`}>
+                <input type="number" step="0.01" min="0" style={inputStyle} value={optForm.value} onChange={e => setOptForm(f => ({ ...f, value: e.target.value }))} placeholder="0,00" />
+              </Field>
+            )}
+
+            <Field label="Link (opcional)">
+              <input type="url" style={inputStyle} value={optForm.url} onChange={e => setOptForm(f => ({ ...f, url: e.target.value }))} placeholder="https://..." />
+            </Field>
+
+            <Field label="Observações (opcional)">
+              <textarea style={{ ...inputStyle, minHeight: 56, resize: 'vertical' }} value={optForm.notes} onChange={e => setOptForm(f => ({ ...f, notes: e.target.value }))} />
+            </Field>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button type="button" onClick={() => { setEditingOption(null); setOptForm(EMPTY_OPT) }} style={{ ...btnSecondary, flex: 1 }}>Cancelar</button>
+              <button type="submit" disabled={saving} style={{ ...btnPrimary, flex: 1 }}>{saving ? 'Salvando...' : 'Salvar'}</button>
+            </div>
+          </form>
+        </Modal>
       )}
 
       {/* Add option modal */}
@@ -588,6 +762,15 @@ const btnSmallGray = {
   padding: '5px 10px',
   fontSize: 12,
   cursor: 'pointer',
+}
+
+const btnAction = {
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  padding: '3px 5px',
+  borderRadius: 4,
+  lineHeight: 1,
 }
 
 const btnAddEscala = {

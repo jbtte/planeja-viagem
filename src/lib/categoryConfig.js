@@ -33,12 +33,14 @@ export const TIPO_CAMPOS = {
     // diarias é calculado automaticamente a partir de check_in e check_out
   ],
   carro: [
+    { key: 'data_retirada', label: 'Data de retirada', type: 'date' },
     { key: 'categoria', label: 'Categoria', type: 'text' },
     { key: 'transmissao', label: 'Câmbio', type: 'text' },
     { key: 'cobertura', label: 'Cobertura total', type: 'boolean' },
     { key: 'dias', label: 'Qtd de dias', type: 'number' },
   ],
   passeios: [
+    { key: 'data', label: 'Data', type: 'date' },
     { key: 'duracao_horas', label: 'Duração (h)', type: 'number' },
     { key: 'inclui_transporte', label: 'Transporte incluído', type: 'boolean' },
     { key: 'idioma', label: 'Idioma', type: 'text' },
@@ -49,10 +51,12 @@ export const TIPO_CAMPOS = {
     { key: 'franquia', label: 'Franquia', type: 'text' },
   ],
   translados: [
+    { key: 'data', label: 'Data', type: 'date' },
     { key: 'tipo', label: 'Tipo', type: 'text' },
     { key: 'percurso', label: 'Percurso', type: 'text' },
   ],
   restaurantes: [
+    { key: 'data', label: 'Data', type: 'date' },
     { key: 'tipo_cozinha', label: 'Tipo de cozinha', type: 'text' },
     { key: 'preco_medio_pessoa', label: 'Preço médio/pessoa', type: 'number' },
   ],
