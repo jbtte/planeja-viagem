@@ -20,6 +20,8 @@ const EMPTY_OPT = { name: '', value: '', url: '', notes: '', campos: {} }
 export default function CategoryCard({
   category,
   currency,
+  tripDestination,
+  tripNumPeople,
   onStatusChange,
   onAddOption,
   onOptionStatusChange,
@@ -33,6 +35,8 @@ export default function CategoryCard({
   const [linkUrl, setLinkUrl] = useState('')
   const [parsing, setParsing] = useState(false)
   const [parseError, setParseError] = useState('')
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestNote, setSuggestNote] = useState('')
 
   const campos = TIPO_CAMPOS[category.tipo] ?? []
   const options = category.options ?? []
@@ -55,6 +59,31 @@ export default function CategoryCard({
     category.tipo === 'gastos_diarios'
       ? (Number(optForm.campos.por_dia ?? 0)) * (Number(optForm.campos.num_dias ?? 0))
       : null
+
+  async function handleSuggestCosts() {
+    setSuggesting(true)
+    setSuggestNote('')
+    try {
+      const numDays = Number(optForm.campos.num_dias) || undefined
+      const res = await fetch('/api/suggest-costs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ destination: tripDestination, num_people: tripNumPeople, num_days: numDays }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      const { data } = json
+      setOptForm(f => ({
+        ...f,
+        name: f.name || `Gastos diários — ${tripDestination}`,
+        campos: { ...f.campos, por_dia: data.por_dia },
+      }))
+      setSuggestNote(data.notas ?? '')
+    } catch (err) {
+      setSuggestNote(`Erro: ${err.message}`)
+    }
+    setSuggesting(false)
+  }
 
   async function handleParseLink() {
     if (!linkUrl.startsWith('http')) {
@@ -300,6 +329,25 @@ export default function CategoryCard({
               </div>
             )}
 
+            {/* Sugestão de custo para gastos_diarios */}
+            {category.tipo === 'gastos_diarios' && tripDestination && (
+              <div>
+                <button
+                  type="button"
+                  onClick={handleSuggestCosts}
+                  disabled={suggesting}
+                  style={{ ...btnSuggest, opacity: suggesting ? 0.6 : 1 }}
+                >
+                  {suggesting ? '✨ Consultando IA...' : '✨ Sugerir custo médio para ' + tripDestination}
+                </button>
+                {suggestNote && (
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 6, fontStyle: 'italic' }}>
+                    {suggestNote}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Valor */}
             {category.tipo === 'gastos_diarios' ? (
               <div
@@ -446,6 +494,18 @@ const btnSmallGray = {
   padding: '5px 10px',
   fontSize: 12,
   cursor: 'pointer',
+}
+
+const btnSuggest = {
+  background: '#faf5ff',
+  border: '1px solid #e9d5ff',
+  borderRadius: 6,
+  padding: '7px 12px',
+  color: '#7c3aed',
+  fontSize: 13,
+  cursor: 'pointer',
+  fontWeight: 500,
+  width: '100%',
 }
 
 const btnAddOption = {

@@ -15,6 +15,9 @@ export default function Trip() {
   const [showNewCat, setShowNewCat] = useState(false)
   const [newCat, setNewCat] = useState({ tipo: 'passagens', name: '' })
   const [saving, setSaving] = useState(false)
+  const [summary, setSummary] = useState('')
+  const [loadingSummary, setLoadingSummary] = useState(false)
+  const [showSummary, setShowSummary] = useState(false)
 
   useEffect(() => {
     loadAll()
@@ -133,6 +136,25 @@ export default function Trip() {
     )
   }
 
+  async function handleGenerateSummary() {
+    setLoadingSummary(true)
+    setSummary('')
+    setShowSummary(true)
+    try {
+      const res = await fetch('/api/trip-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trip, categories }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setSummary(json.summary)
+    } catch (err) {
+      setSummary(`Erro: ${err.message}`)
+    }
+    setLoadingSummary(false)
+  }
+
   if (!trip) return <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Carregando...</div>
 
   const { estimado, fechado } = calcBudgets(categories)
@@ -141,7 +163,16 @@ export default function Trip() {
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px' }}>
       {/* Header */}
-      <button onClick={() => navigate('/')} style={btnBack}>← Minhas viagens</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button onClick={() => navigate('/')} style={btnBack}>← Minhas viagens</button>
+        <button
+          onClick={handleGenerateSummary}
+          disabled={loadingSummary}
+          style={{ ...btnSummary, opacity: loadingSummary ? 0.6 : 1 }}
+        >
+          {loadingSummary ? '✨ Gerando...' : '✨ Resumo'}
+        </button>
+      </div>
       <div style={{ marginTop: 12, marginBottom: 24 }}>
         <h1 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700 }}>{trip.destination}</h1>
         <div style={{ fontSize: 13, color: '#64748b' }}>
@@ -179,6 +210,8 @@ export default function Trip() {
             key={cat.id}
             category={cat}
             currency={currency}
+            tripDestination={trip.destination}
+            tripNumPeople={trip.num_people}
             onStatusChange={status => updateCategoryStatus(cat.id, status)}
             onAddOption={option => addOption(cat.id, option)}
             onOptionStatusChange={(optId, status) => updateOptionStatus(cat.id, optId, status)}
@@ -195,6 +228,43 @@ export default function Trip() {
       >
         + Adicionar categoria
       </button>
+
+      {/* Modal de resumo */}
+      {showSummary && (
+        <Modal title="Resumo da viagem" onClose={() => setShowSummary(false)}>
+          {loadingSummary ? (
+            <div style={{ textAlign: 'center', padding: '24px 0', color: '#64748b' }}>
+              Gerando resumo com IA...
+            </div>
+          ) : (
+            <div>
+              <textarea
+                readOnly
+                value={summary}
+                style={{
+                  width: '100%',
+                  minHeight: 320,
+                  padding: 12,
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                  color: '#1e293b',
+                  background: '#f8fafc',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                onClick={() => { navigator.clipboard.writeText(summary) }}
+                style={{ ...btnPrimary, width: '100%', marginTop: 12 }}
+              >
+                Copiar para área de transferência
+              </button>
+            </div>
+          )}
+        </Modal>
+      )}
 
       {showNewCat && (
         <Modal title="Nova categoria" onClose={() => setShowNewCat(false)}>
@@ -322,6 +392,17 @@ const btnBack = {
   cursor: 'pointer',
   padding: 0,
   fontWeight: 500,
+}
+
+const btnSummary = {
+  background: '#faf5ff',
+  border: '1px solid #e9d5ff',
+  borderRadius: 8,
+  padding: '7px 14px',
+  color: '#7c3aed',
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
 }
 
 const btnDashed = {
