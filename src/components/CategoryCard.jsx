@@ -210,7 +210,7 @@ export default function CategoryCard({
       <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15, fontWeight: 600 }}>{category.name}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: '#1e293b' }}>{category.name}</span>
             <span
               style={{
                 fontSize: 11,
