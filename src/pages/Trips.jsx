@@ -197,7 +197,7 @@ export default function Trips() {
         {trips.map(trip => (
           <div key={trip.id} onClick={() => navigate(`/trip/${trip.slug}`)} style={tripCard}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 16 }}>{trip.destination}</div>
+              <div style={{ fontWeight: 600, fontSize: 16, color: '#1e293b' }}>{trip.destination}</div>
               <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
                 {trip.start_date && trip.end_date
                   ? `${fmtDate(trip.start_date)} – ${fmtDate(trip.end_date)}`
