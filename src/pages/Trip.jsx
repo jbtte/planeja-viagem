@@ -20,6 +20,7 @@ export default function Trip() {
   const [loadingSummary, setLoadingSummary] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 900)
+  const [photoUrl, setPhotoUrl] = useState(null)
 
   useEffect(() => {
     loadAll()
@@ -31,6 +32,18 @@ export default function Trip() {
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
   }, [])
+
+  useEffect(() => {
+    if (!trip?.destination) return
+    setPhotoUrl(null)
+    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(trip.destination)}`)
+      .then(r => r.json())
+      .then(data => {
+        const src = data.originalimage?.source ?? data.thumbnail?.source
+        if (src) setPhotoUrl(src)
+      })
+      .catch(() => {})
+  }, [trip?.destination])
 
   async function loadAll() {
     const { data: tripData } = await supabase.from('trips').select('*').eq('slug', slug).single()
@@ -196,20 +209,20 @@ export default function Trip() {
   const { estimado, fechado } = calcBudgets(categories, trip.num_people)
   const currency = trip.currency
 
-  const imageUrl = `https://source.unsplash.com/featured/800x1200/?${encodeURIComponent(trip.destination + ',travel,landscape')}`
-
   return (
     <div style={isDesktop ? { display: 'flex', height: '100vh', overflow: 'hidden' } : {}}>
 
       {/* Image panel — desktop only */}
       {isDesktop && (
         <div style={{ width: '42%', flexShrink: 0, position: 'relative', background: '#0f172a', overflow: 'hidden' }}>
-          <img
-            src={imageUrl}
-            alt={trip.destination}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.82 }}
-            onError={e => { e.target.style.display = 'none' }}
-          />
+          {photoUrl && (
+            <img
+              src={photoUrl}
+              alt={trip.destination}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.82 }}
+              onError={e => { e.target.style.display = 'none' }}
+            />
+          )}
           <div style={{
             position: 'absolute', inset: 0,
             background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)',
