@@ -19,10 +19,18 @@ export default function Trip() {
   const [summary, setSummary] = useState('')
   const [loadingSummary, setLoadingSummary] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 900)
 
   useEffect(() => {
     loadAll()
   }, [id])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 900px)')
+    const handler = e => setIsDesktop(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   async function loadAll() {
     const [{ data: tripData }, { data: catsData }] = await Promise.all([
@@ -189,8 +197,47 @@ export default function Trip() {
   const { estimado, fechado } = calcBudgets(categories, trip.num_people)
   const currency = trip.currency
 
+  const imageUrl = `https://source.unsplash.com/featured/800x1200/?${encodeURIComponent(trip.destination + ',travel,landscape')}`
+
   return (
-    <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px' }}>
+    <div style={isDesktop ? { display: 'flex', height: '100vh', overflow: 'hidden' } : {}}>
+
+      {/* Image panel — desktop only */}
+      {isDesktop && (
+        <div style={{ width: '42%', flexShrink: 0, position: 'relative', background: '#0f172a', overflow: 'hidden' }}>
+          <img
+            src={imageUrl}
+            alt={trip.destination}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.82 }}
+            onError={e => { e.target.style.display = 'none' }}
+          />
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+            padding: '36px 32px',
+            color: '#fff',
+          }}>
+            {trip.start_date && trip.end_date && (
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 8, letterSpacing: 0.3 }}>
+                {fmtDate(trip.start_date)} – {fmtDate(trip.end_date)}
+              </div>
+            )}
+            <div style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.15 }}>{trip.destination}</div>
+            <div style={{ fontSize: 13, opacity: 0.65, marginTop: 10 }}>
+              {trip.num_people} pessoa{trip.num_people !== 1 ? 's' : ''} · {currency}
+              {trip.budget ? ` · Estimativa ${fmtCurrency(trip.budget, currency)}` : ''}
+            </div>
+            {trip.notes && (
+              <div style={{ fontSize: 12, opacity: 0.55, marginTop: 6, fontStyle: 'italic' }}>{trip.notes}</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Content panel */}
+      <div style={isDesktop ? { flex: 1, overflowY: 'auto' } : {}}>
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button onClick={() => navigate('/')} style={btnBack}>← Minhas viagens</button>
@@ -203,7 +250,7 @@ export default function Trip() {
         </button>
       </div>
       <div style={{ marginTop: 12, marginBottom: 24 }}>
-        <h1 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700 }}>{trip.destination}</h1>
+        {!isDesktop && <h1 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700 }}>{trip.destination}</h1>}
         <div style={{ fontSize: 13, color: '#64748b' }}>
           {trip.start_date && trip.end_date
             ? `${fmtDate(trip.start_date)} – ${fmtDate(trip.end_date)}`
@@ -353,6 +400,8 @@ export default function Trip() {
           </form>
         </Modal>
       )}
+      </div>
+      </div>
     </div>
   )
 }
