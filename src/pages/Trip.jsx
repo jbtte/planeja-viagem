@@ -39,12 +39,14 @@ export default function Trip() {
     const key = import.meta.env.VITE_UNSPLASH_ACCESS_KEY
     const query = trip.destination
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-zA-Z0-9\s]/g, '').trim() + ' travel'
-    fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=portrait&per_page=1&client_id=${key}`)
+      .replace(/[^a-zA-Z0-9\s]/g, '').trim() + ' landmark travel'
+    fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=portrait&per_page=10&order_by=relevant&client_id=${key}`)
       .then(r => r.json())
       .then(data => {
-        const src = data.results?.[0]?.urls?.regular
-        if (src) setPhotoUrl(src)
+        const results = data.results ?? []
+        if (!results.length) return
+        const pick = results[Math.floor(Math.random() * Math.min(5, results.length))]
+        setPhotoUrl(pick.urls.regular)
       })
       .catch(() => {})
   }, [trip?.destination])
