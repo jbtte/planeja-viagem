@@ -27,7 +27,15 @@ export default function Trips() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [categoriasSelecionadas, setCategoriasSelecionadas] = useState(DEFAULT_CATEGORIAS)
   const [saving, setSaving] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 900)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 900px)')
+    const handler = e => setIsDesktop(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -99,7 +107,39 @@ export default function Trips() {
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto', padding: '24px 16px' }}>
+    <div style={isDesktop ? { display: 'flex', height: '100vh', overflow: 'hidden' } : {}}>
+
+      {/* Image panel — desktop only */}
+      {isDesktop && (
+        <div style={{ width: '40%', flexShrink: 0, position: 'relative', overflow: 'hidden', background: '#0f172a' }}>
+          <img
+            src="/viagem-trip.jpg"
+            alt="Planejamento de viagem"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75 }}
+          />
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.15) 100%)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+            padding: '40px 36px',
+            color: '#fff',
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: 2, opacity: 0.6, textTransform: 'uppercase', marginBottom: 12 }}>
+              Planeja Viagem
+            </div>
+            <div style={{ fontSize: 32, fontWeight: 700, lineHeight: 1.2, marginBottom: 12 }}>
+              Organize cada detalhe da sua próxima aventura
+            </div>
+            <div style={{ fontSize: 14, opacity: 0.6, lineHeight: 1.6 }}>
+              Compare opções, controle o orçamento e acompanhe o que já está fechado — tudo num só lugar.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Content panel */}
+      <div style={isDesktop ? { flex: 1, overflowY: 'auto' } : {}}>
+      <div style={{ maxWidth: 600, margin: '0 auto', padding: '24px 16px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Minhas Viagens</h1>
@@ -262,6 +302,8 @@ export default function Trips() {
           </form>
         </Modal>
       )}
+      </div>
+      </div>
     </div>
   )
 }
