@@ -37,7 +37,10 @@ export default function Trip() {
     if (!trip?.destination) return
     setPhotoUrl(null)
     const key = import.meta.env.VITE_UNSPLASH_ACCESS_KEY
-    fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(trip.destination + ' travel')}&orientation=portrait&per_page=1&client_id=${key}`)
+    const query = trip.destination
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9\s]/g, '').trim() + ' travel'
+    fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=portrait&per_page=1&client_id=${key}`)
       .then(r => r.json())
       .then(data => {
         const src = data.results?.[0]?.urls?.regular
