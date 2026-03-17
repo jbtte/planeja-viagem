@@ -53,6 +53,10 @@ export default function Trips() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    document.title = 'Planeja Viagem'
+  }, [])
+
+  useEffect(() => {
     const mq = window.matchMedia('(min-width: 900px)')
     const handler = e => setIsDesktop(e.matches)
     mq.addEventListener('change', handler)

@@ -54,6 +54,8 @@ export default function Trip() {
   async function loadAll() {
     const { data: tripData } = await supabase.from('trips').select('*').eq('slug', slug).single()
     if (!tripData) return
+    const year = tripData.start_date ? new Date(tripData.start_date + 'T12:00:00').getFullYear() : null
+    document.title = `${tripData.destination}${year ? ` · ${year}` : ''} — Planeja Viagem`
     const { data: catsData } = await supabase
       .from('categories')
       .select('*, options(*)')
