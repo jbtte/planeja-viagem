@@ -46,6 +46,7 @@ function renderWidget(trip, categories) {
   const currency = trip.currency
   const { estimado, fechado } = calcBudgets(categories, trip.num_people)
   const showBrl = currency !== 'BRL' && trip.exchange_rate > 1
+  const overBudget = trip.budget && estimado > trip.budget
 
   const visibleCats = categories.filter(c => c.status !== 'descartado')
 
@@ -64,14 +65,14 @@ function renderWidget(trip, categories) {
 
     return `
       <tr>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-weight:500;color:#1e293b;font-size:13px">${cat.name}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#475569;font-size:13px">${best?.name ?? '—'}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;color:#1e293b;font-size:13px">
+        <td class="td-name">${cat.name}</td>
+        <td class="td-option">${best?.name ?? '—'}</td>
+        <td class="td-value">
           ${val > 0 ? fmtCurrency(val, currency) : '—'}
-          ${showBrl && val > 0 ? `<br><span style="font-size:11px;color:#94a3b8;font-weight:400">≈ ${fmtCurrency(brlVal, 'BRL')}</span>` : ''}
+          ${showBrl && val > 0 ? `<br><span class="brl">≈ ${fmtCurrency(brlVal, 'BRL')}</span>` : ''}
         </td>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;text-align:center">
-          <span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:${statusColor}20;color:${statusColor}">${statusLabel}</span>
+        <td class="td-status">
+          <span class="badge" style="background:${statusColor}22;color:${statusColor}">${statusLabel}</span>
         </td>
       </tr>`
   }).join('')
@@ -81,20 +82,20 @@ function renderWidget(trip, categories) {
 
   const budgetCards = [
     trip.budget ? `
-      <div style="flex:1;min-width:120px;background:#fff;border:2px solid #6366f120;border-radius:10px;padding:12px 14px">
-        <div style="font-size:10px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Estimativa</div>
-        <div style="font-size:17px;font-weight:700;color:#1e293b">${fmtCurrency(trip.budget, currency)}</div>
-        ${showBrl ? `<div style="font-size:11px;color:#94a3b8">≈ ${fmtCurrency(trip.budget * (trip.exchange_rate || 1), 'BRL')}</div>` : ''}
+      <div class="card" style="border-color:#6366f133">
+        <div class="card-label" style="color:#6366f1">Estimativa</div>
+        <div class="card-value">${fmtCurrency(trip.budget, currency)}</div>
+        ${showBrl ? `<div class="brl">≈ ${fmtCurrency(trip.budget * (trip.exchange_rate || 1), 'BRL')}</div>` : ''}
       </div>` : '',
-    `<div style="flex:1;min-width:120px;background:#fff;border:2px solid #f59e0b20;border-radius:10px;padding:12px 14px">
-      <div style="font-size:10px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Projetado</div>
-      <div style="font-size:17px;font-weight:700;color:${trip.budget && estimado > trip.budget ? '#ef4444' : '#1e293b'}">${fmtCurrency(estimado, currency)}</div>
-      ${showBrl ? `<div style="font-size:11px;color:#94a3b8">≈ ${fmtCurrency(brlEstimado, 'BRL')}</div>` : ''}
+    `<div class="card" style="border-color:#f59e0b33">
+      <div class="card-label" style="color:#f59e0b">Projetado</div>
+      <div class="card-value${overBudget ? ' over-budget' : ''}">${fmtCurrency(estimado, currency)}</div>
+      ${showBrl ? `<div class="brl">≈ ${fmtCurrency(brlEstimado, 'BRL')}</div>` : ''}
     </div>`,
-    `<div style="flex:1;min-width:120px;background:#fff;border:2px solid #10b98120;border-radius:10px;padding:12px 14px">
-      <div style="font-size:10px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Comprometido</div>
-      <div style="font-size:17px;font-weight:700;color:#1e293b">${fmtCurrency(fechado, currency)}</div>
-      ${showBrl ? `<div style="font-size:11px;color:#94a3b8">≈ ${fmtCurrency(brlFechado, 'BRL')}</div>` : ''}
+    `<div class="card" style="border-color:#10b98133">
+      <div class="card-label" style="color:#10b981">Comprometido</div>
+      <div class="card-value">${fmtCurrency(fechado, currency)}</div>
+      ${showBrl ? `<div class="brl">≈ ${fmtCurrency(brlFechado, 'BRL')}</div>` : ''}
     </div>`,
   ].join('')
 
@@ -108,34 +109,78 @@ function renderWidget(trip, categories) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${trip.destination} — Orçamento</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --row-border: #f1f5f9;
+      --thead-bg: #f8fafc;
+      --text: #1e293b;
+      --text-2: #475569;
+      --muted: #94a3b8;
+      --very-muted: #cbd5e1;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #191919;
+        --surface: #2f2f2f;
+        --border: #3f3f3f;
+        --row-border: #383838;
+        --thead-bg: #252525;
+        --text: #e5e5e5;
+        --text-2: #a0a0a0;
+        --muted: #6b6b6b;
+        --very-muted: #4a4a4a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+    .container { max-width: 700px; margin: 0 auto; }
+    .trip-title { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+    .trip-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--thead-bg); }
+    th { padding: 9px 12px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); text-align: left; }
+    th.right { text-align: right; }
+    th.center { text-align: center; }
+    .td-name { padding: 10px 12px; border-bottom: 1px solid var(--row-border); font-size: 13px; font-weight: 500; color: var(--text); }
+    .td-option { padding: 10px 12px; border-bottom: 1px solid var(--row-border); font-size: 13px; color: var(--text-2); }
+    .td-value { padding: 10px 12px; border-bottom: 1px solid var(--row-border); font-size: 13px; font-weight: 600; color: var(--text); text-align: right; }
+    .td-status { padding: 10px 12px; border-bottom: 1px solid var(--row-border); text-align: center; }
+    .brl { font-size: 11px; color: var(--muted); font-weight: 400; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .cards { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+    .card { flex: 1; min-width: 120px; background: var(--surface); border: 2px solid; border-radius: 10px; padding: 12px 14px; }
+    .card-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .card-value { font-size: 17px; font-weight: 700; color: var(--text); }
+    .card-value.over-budget { color: #ef4444; }
+    .footer { margin-top: 14px; font-size: 10px; color: var(--very-muted); text-align: right; }
+    .empty { padding: 20px; text-align: center; color: var(--muted); font-size: 13px; }
+  </style>
 </head>
-<body style="margin:0;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;color:#1e293b">
-  <div style="max-width:700px;margin:0 auto">
-    <div style="margin-bottom:16px">
-      <div style="font-size:18px;font-weight:700;color:#1e293b">${trip.destination}</div>
-      <div style="font-size:12px;color:#64748b;margin-top:3px">${dateStr} · ${trip.num_people} pessoa${trip.num_people !== 1 ? 's' : ''} · ${currency}</div>
-    </div>
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
-      <table style="width:100%;border-collapse:collapse">
+<body>
+  <div class="container">
+    <div class="trip-title">${trip.destination}</div>
+    <div class="trip-sub">${dateStr} · ${trip.num_people} pessoa${trip.num_people !== 1 ? 's' : ''} · ${currency}</div>
+    <div class="table-wrap">
+      <table>
         <thead>
-          <tr style="background:#f8fafc">
-            <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0">Categoria</th>
-            <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0">Opção</th>
-            <th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0">Valor</th>
-            <th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0">Status</th>
+          <tr>
+            <th>Categoria</th>
+            <th>Opção</th>
+            <th class="right">Valor</th>
+            <th class="center">Status</th>
           </tr>
         </thead>
         <tbody>
-          ${rows || '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94a3b8;font-size:13px">Nenhuma categoria</td></tr>'}
+          ${rows || '<tr><td colspan="4" class="empty">Nenhuma categoria</td></tr>'}
         </tbody>
       </table>
     </div>
-    <div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap">
-      ${budgetCards}
-    </div>
-    <div style="margin-top:14px;font-size:10px;color:#cbd5e1;text-align:right">
-      Planeja Viagem · Atualizado em tempo real
-    </div>
+    <div class="cards">${budgetCards}</div>
+    <div class="footer">Planeja Viagem · Atualizado em tempo real</div>
   </div>
 </body>
 </html>`
