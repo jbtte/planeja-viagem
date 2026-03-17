@@ -36,10 +36,11 @@ export default function Trip() {
   useEffect(() => {
     if (!trip?.destination) return
     setPhotoUrl(null)
-    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(trip.destination)}`)
+    const key = import.meta.env.VITE_UNSPLASH_ACCESS_KEY
+    fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(trip.destination + ' travel')}&orientation=portrait&per_page=1&client_id=${key}`)
       .then(r => r.json())
       .then(data => {
-        const src = data.originalimage?.source ?? data.thumbnail?.source
+        const src = data.results?.[0]?.urls?.regular
         if (src) setPhotoUrl(src)
       })
       .catch(() => {})
