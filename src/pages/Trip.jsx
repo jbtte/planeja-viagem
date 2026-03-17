@@ -429,7 +429,17 @@ export default function Trip() {
 function DocsSection({ trip, categories, onFolderUrlSave }) {
   const [collapsed, setCollapsed] = useState(false)
   const [folderUrl, setFolderUrl] = useState(trip.notion_folder_url ?? '')
+  const [copied, setCopied] = useState(false)
   const closedWithDocs = categories.filter(c => c.status === 'fechado' && c.notion_url)
+  const widgetUrl = trip.share_token
+    ? `${window.location.origin}/api/trip-widget?token=${trip.share_token}`
+    : null
+
+  function copyWidgetUrl() {
+    navigator.clipboard.writeText(widgetUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, marginBottom: 20, overflow: 'hidden' }}>
@@ -486,6 +496,33 @@ function DocsSection({ trip, categories, onFolderUrlSave }) {
               Documentos aparecerão aqui quando você fechar categorias e adicionar links do Notion.
             </div>
           )}
+
+          {/* Widget Notion */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 5 }}>
+              Widget de orçamento
+            </div>
+            {widgetUrl ? (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  readOnly
+                  style={{ ...inputStyle, fontSize: 12, color: '#64748b', background: '#f8fafc', cursor: 'default' }}
+                  value={widgetUrl}
+                  onFocus={e => e.target.select()}
+                />
+                <button onClick={copyWidgetUrl} style={{ ...btnSecondary, whiteSpace: 'nowrap', padding: '8px 12px', fontSize: 12 }}>
+                  {copied ? '✓ Copiado' : 'Copiar'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
+                Execute a migração SQL para habilitar o widget.
+              </div>
+            )}
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 5 }}>
+              Cole no Notion como <code style={{ background: '#f1f5f9', padding: '1px 4px', borderRadius: 3 }}>/embed</code> — exibe o orçamento atualizado em tempo real.
+            </div>
+          </div>
         </div>
       )}
     </div>
