@@ -23,7 +23,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
         <Route path="/" element={session ? <Trips /> : <Navigate to="/login" />} />
-        <Route path="/trip/:id" element={session ? <Trip /> : <Navigate to="/login" />} />
+        <Route path="/trip/:slug" element={session ? <Trip /> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   )

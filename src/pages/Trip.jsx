@@ -9,7 +9,7 @@ import { TIPO_LABELS } from '../lib/categoryConfig'
 const TIPOS = Object.keys(TIPO_LABELS)
 
 export default function Trip() {
-  const { id } = useParams()
+  const { slug } = useParams()
   const navigate = useNavigate()
   const [trip, setTrip] = useState(null)
   const [categories, setCategories] = useState([])
@@ -23,7 +23,7 @@ export default function Trip() {
 
   useEffect(() => {
     loadAll()
-  }, [id])
+  }, [slug])
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 900px)')
@@ -33,14 +33,13 @@ export default function Trip() {
   }, [])
 
   async function loadAll() {
-    const [{ data: tripData }, { data: catsData }] = await Promise.all([
-      supabase.from('trips').select('*').eq('id', id).single(),
-      supabase
-        .from('categories')
-        .select('*, options(*)')
-        .eq('trip_id', id)
-        .order('sort_order'),
-    ])
+    const { data: tripData } = await supabase.from('trips').select('*').eq('slug', slug).single()
+    if (!tripData) return
+    const { data: catsData } = await supabase
+      .from('categories')
+      .select('*, options(*)')
+      .eq('trip_id', tripData.id)
+      .order('sort_order')
     setTrip(tripData)
     // Sort options by created_at within each category
     setCategories(
@@ -57,7 +56,7 @@ export default function Trip() {
     const { data, error } = await supabase
       .from('categories')
       .insert([{
-        trip_id: id,
+        trip_id: trip.id,
         tipo: newCat.tipo,
         name: newCat.name.trim() || TIPO_LABELS[newCat.tipo],
         sort_order: categories.length,
@@ -169,7 +168,7 @@ export default function Trip() {
   }
 
   async function updateTripNotionFolderUrl(url) {
-    await supabase.from('trips').update({ notion_folder_url: url }).eq('id', id)
+    await supabase.from('trips').update({ notion_folder_url: url }).eq('id', trip.id)
     setTrip(t => ({ ...t, notion_folder_url: url }))
   }
 

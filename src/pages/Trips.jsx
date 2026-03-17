@@ -6,6 +6,28 @@ import { TIPO_LABELS } from '../lib/categoryConfig'
 
 const CURRENCIES = ['BRL', 'USD', 'EUR', 'ARS', 'CLP', 'PEN', 'COP', 'GBP']
 
+function toSlug(destination, year) {
+  return (destination + '-' + year)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+}
+
+async function generateUniqueSlug(destination, year) {
+  const base = toSlug(destination, year)
+  let slug = base
+  let i = 2
+  while (true) {
+    const { data } = await supabase.from('trips').select('id').eq('slug', slug).maybeSingle()
+    if (!data) return slug
+    slug = `${base}-${i++}`
+  }
+}
+
 // Categorias pré-selecionadas por padrão
 const DEFAULT_CATEGORIAS = ['passagens', 'hotel', 'gastos_diarios']
 
@@ -64,6 +86,9 @@ export default function Trips() {
     e.preventDefault()
     setSaving(true)
 
+    const year = form.start_date ? form.start_date.slice(0, 4) : new Date().getFullYear()
+    const slug = await generateUniqueSlug(form.destination, year)
+
     const { data: trip, error } = await supabase
       .from('trips')
       .insert([{
@@ -71,6 +96,7 @@ export default function Trips() {
         user_id: user.id,
         exchange_rate: Number(form.exchange_rate) || 1,
         budget: form.budget ? Number(form.budget) : null,
+        slug,
       }])
       .select()
       .single()
@@ -90,7 +116,7 @@ export default function Trips() {
     }
 
     setSaving(false)
-    navigate(`/trip/${trip.id}`)
+    navigate(`/trip/${trip.slug}`)
   }
 
   async function handleDelete(e, tripId) {
@@ -165,7 +191,7 @@ export default function Trips() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {trips.map(trip => (
-          <div key={trip.id} onClick={() => navigate(`/trip/${trip.id}`)} style={tripCard}>
+          <div key={trip.id} onClick={() => navigate(`/trip/${trip.slug}`)} style={tripCard}>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 600, fontSize: 16 }}>{trip.destination}</div>
               <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
