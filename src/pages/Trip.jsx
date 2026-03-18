@@ -318,13 +318,6 @@ export default function Trip() {
       {/* Grade de cobertura */}
       <CoverageGrid trip={trip} categories={categories} />
 
-      {/* Documentos da Viagem */}
-      <DocsSection
-        trip={trip}
-        categories={categories}
-        onFolderUrlSave={updateTripNotionFolderUrl}
-      />
-
       {/* Categories */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {categories.map(cat => (
@@ -345,6 +338,13 @@ export default function Trip() {
           />
         ))}
       </div>
+
+      {/* Documentos da Viagem */}
+      <DocsSection
+        trip={trip}
+        categories={categories}
+        onFolderUrlSave={updateTripNotionFolderUrl}
+      />
 
       {/* Add category */}
       <button
@@ -427,7 +427,9 @@ export default function Trip() {
 }
 
 function DocsSection({ trip, categories, onFolderUrlSave }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('collapsed_docs') === 'true' } catch { return false }
+  })
   const [folderUrl, setFolderUrl] = useState(trip.notion_folder_url ?? '')
   const [copied, setCopied] = useState(false)
   const closedWithDocs = categories.filter(c => c.status === 'fechado' && c.notion_url)
@@ -445,7 +447,7 @@ function DocsSection({ trip, categories, onFolderUrlSave }) {
     <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, marginBottom: 20, overflow: 'hidden' }}>
       <div
         style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
-        onClick={() => setCollapsed(c => !c)}
+        onClick={() => setCollapsed(c => { const next = !c; try { localStorage.setItem('collapsed_docs', next) } catch {}; return next })}
       >
         <span style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>📁 Documentos da Viagem</span>
         <span style={{ fontSize: 12, color: '#94a3b8' }}>{collapsed ? '▼' : '▲'}</span>
@@ -599,6 +601,8 @@ const inputStyle = {
   width: '100%',
   boxSizing: 'border-box',
   outline: 'none',
+  color: '#1e293b',
+  background: '#fff',
 }
 
 const btnPrimary = {

@@ -16,6 +16,7 @@ export default function Modal({ title, onClose, children }) {
       <div
         style={{
           background: '#fff',
+          color: '#1e293b',
           borderRadius: 16,
           padding: 24,
           width: '100%',

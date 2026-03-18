@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const GRID_TIPOS = ['passagens', 'hotel', 'carro', 'translados', 'passeios', 'restaurantes']
 
 const TIPO_META = {
@@ -13,6 +15,10 @@ const TIPO_META = {
 const CRITICAL_TIPOS = new Set(['hotel'])
 
 export default function CoverageGrid({ trip, categories }) {
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('collapsed_coverage') === 'true' } catch { return false }
+  })
+
   if (!trip.start_date || !trip.end_date) return null
 
   const days = getDays(trip.start_date, trip.end_date)
@@ -23,6 +29,14 @@ export default function CoverageGrid({ trip, categories }) {
 
   const colW = Math.max(40, Math.min(56, Math.floor((640 - 110) / days.length)))
 
+  function toggleCollapsed() {
+    setCollapsed(c => {
+      const next = !c
+      try { localStorage.setItem('collapsed_coverage', next) } catch {}
+      return next
+    })
+  }
+
   return (
     <div style={{
       background: '#fff',
@@ -31,11 +45,15 @@ export default function CoverageGrid({ trip, categories }) {
       marginBottom: 20,
       overflow: 'hidden',
     }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
+      <div
+        style={{ padding: '12px 16px', borderBottom: collapsed ? 'none' : '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+        onClick={toggleCollapsed}
+      >
         <span style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>📅 Cobertura da Viagem</span>
+        <span style={{ fontSize: 12, color: '#94a3b8' }}>{collapsed ? '▼' : '▲'}</span>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      {!collapsed && <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: `${110 + colW * days.length}px` }}>
           <thead>
             <tr>
@@ -114,6 +132,7 @@ export default function CoverageGrid({ trip, categories }) {
         <LegendItem bg="#fef9c3" border="#fde68a" text="#92400e" label="Em pesquisa" mark="~" />
         <LegendItem bg="#fee2e2" border="#fca5a5" text="#dc2626" label="Gap de hotel" mark="!" />
       </div>
+      </div>}
     </div>
   )
 }

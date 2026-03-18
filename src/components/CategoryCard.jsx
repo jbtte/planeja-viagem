@@ -30,7 +30,9 @@ export default function CategoryCard({
   onNotionUrlSave,
   onUpdateOption,
 }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(`collapsed_cat_${category.id}`) === 'true' } catch { return false }
+  })
   const [showAddOption, setShowAddOption] = useState(false)
   const [editingOption, setEditingOption] = useState(null)
   const [notionUrl, setNotionUrl] = useState(category.notion_url ?? '')
@@ -253,7 +255,7 @@ export default function CategoryCard({
               Reabrir
             </button>
           )}
-          <button onClick={() => setCollapsed(c => !c)} style={btnSmallGray} title={collapsed ? 'Expandir' : 'Colapsar'}>
+          <button onClick={() => setCollapsed(c => { const next = !c; try { localStorage.setItem(`collapsed_cat_${category.id}`, next) } catch {} return next })} style={btnSmallGray} title={collapsed ? 'Expandir' : 'Colapsar'}>
             {collapsed ? '▼' : '▲'}
           </button>
           <button onClick={onDelete} style={{ ...btnSmallGray, color: '#fca5a5' }} title="Deletar categoria">
