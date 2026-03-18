@@ -455,7 +455,7 @@ function DocsSection({ trip, categories, onFolderUrlSave }) {
   }
 
   return (
-    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, marginBottom: 20, overflow: 'hidden' }}>
+    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, marginTop: 14, marginBottom: 20, overflow: 'hidden' }}>
       <div
         style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
         onClick={() => setCollapsed(c => { const next = !c; try { localStorage.setItem('collapsed_docs', next) } catch {}; return next })}
