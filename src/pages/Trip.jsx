@@ -320,7 +320,9 @@ export default function Trip() {
 
       {/* Categories */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {categories.map(cat => (
+        {[...categories]
+          .sort((a, b) => TIPOS.indexOf(a.tipo) - TIPOS.indexOf(b.tipo) || a.sort_order - b.sort_order)
+          .map(cat => (
           <CategoryCard
             key={cat.id}
             category={cat}
