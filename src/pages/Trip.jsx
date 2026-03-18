@@ -14,7 +14,7 @@ export default function Trip() {
   const [trip, setTrip] = useState(null)
   const [categories, setCategories] = useState([])
   const [showNewCat, setShowNewCat] = useState(false)
-  const [newCat, setNewCat] = useState({ tipo: 'passagens', name: '' })
+  const [newCat, setNewCat] = useState({ tipo: 'passagens', name: '', cidade: '' })
   const [saving, setSaving] = useState(false)
   const [summary, setSummary] = useState('')
   const [loadingSummary, setLoadingSummary] = useState(false)
@@ -79,7 +79,7 @@ export default function Trip() {
       .insert([{
         trip_id: trip.id,
         tipo: newCat.tipo,
-        name: newCat.name.trim() || TIPO_LABELS[newCat.tipo],
+        name: newCat.name.trim() || (newCat.tipo === 'hotel' && newCat.cidade.trim() ? `Hotel — ${newCat.cidade.trim()}` : TIPO_LABELS[newCat.tipo]),
         sort_order: categories.length,
       }])
       .select('*, options(*)')
@@ -88,7 +88,7 @@ export default function Trip() {
     if (!error) {
       setCategories(c => [...c, { ...data, options: [] }])
       setShowNewCat(false)
-      setNewCat({ tipo: 'passagens', name: '' })
+      setNewCat({ tipo: 'passagens', name: '', cidade: '' })
     }
   }
 
@@ -398,17 +398,28 @@ export default function Trip() {
               <select
                 style={inputStyle}
                 value={newCat.tipo}
-                onChange={e => setNewCat(f => ({ ...f, tipo: e.target.value, name: '' }))}
+                onChange={e => setNewCat(f => ({ ...f, tipo: e.target.value, name: '', cidade: '' }))}
               >
                 {TIPOS.map(t => <option key={t} value={t}>{TIPO_LABELS[t]}</option>)}
               </select>
             </Field>
+            {newCat.tipo === 'hotel' && (
+              <Field label="Cidade">
+                <input
+                  style={inputStyle}
+                  value={newCat.cidade}
+                  onChange={e => setNewCat(f => ({ ...f, cidade: e.target.value }))}
+                  placeholder="Ex: Tóquio"
+                  autoFocus
+                />
+              </Field>
+            )}
             <Field label="Nome personalizado (opcional)">
               <input
                 style={inputStyle}
                 value={newCat.name}
                 onChange={e => setNewCat(f => ({ ...f, name: e.target.value }))}
-                placeholder={TIPO_LABELS[newCat.tipo]}
+                placeholder={newCat.tipo === 'hotel' && newCat.cidade.trim() ? `Hotel — ${newCat.cidade.trim()}` : TIPO_LABELS[newCat.tipo]}
               />
             </Field>
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
