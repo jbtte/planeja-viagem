@@ -53,7 +53,7 @@ export default function CoverageGrid({ trip, categories }) {
         <span style={{ fontSize: 12, color: '#94a3b8' }}>{collapsed ? '▼' : '▲'}</span>
       </div>
 
-      {!collapsed && <div style={{ overflowX: 'auto' }}>
+      {!collapsed && (<><div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: `${110 + colW * days.length}px` }}>
           <thead>
             <tr>
@@ -126,13 +126,12 @@ export default function CoverageGrid({ trip, categories }) {
         </table>
       </div>
 
-      {/* Legend */}
       <div style={{ padding: '8px 14px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
         <LegendItem bg="#d1fae5" border="#6ee7b7" text="#065f46" label="Fechado" mark="✓" />
         <LegendItem bg="#fef9c3" border="#fde68a" text="#92400e" label="Em pesquisa" mark="~" />
         <LegendItem bg="#fee2e2" border="#fca5a5" text="#dc2626" label="Gap de hotel" mark="!" />
       </div>
-      </div>}
+      </>)}
     </div>
   )
 }
