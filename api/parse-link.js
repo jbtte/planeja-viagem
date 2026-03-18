@@ -71,41 +71,45 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método não permitido' })
   }
 
-  const { url, tipo } = req.body
+  const { url, content, tipo } = req.body
 
-  if (!url || !url.startsWith('http')) {
-    return res.status(400).json({ error: 'URL inválida' })
-  }
-
-  // Busca conteúdo legível da página via Jina AI Reader
   let pageText
-  try {
-    const jinaRes = await fetch(`https://r.jina.ai/${url}`, {
-      headers: {
-        'Accept': 'text/plain',
-        'X-Return-Format': 'markdown',
-        'X-No-Cache': 'true',
-        'X-With-Generated-Alt': 'true',
-      },
-      signal: AbortSignal.timeout(30000),
-    })
-    pageText = await jinaRes.text()
-  } catch {
-    return res.status(502).json({ error: 'Não foi possível acessar a página' })
+  let sourceUrl = url ?? ''
+
+  if (content) {
+    // Modo paste: conteúdo já veio do cliente
+    pageText = content
+  } else if (url && url.startsWith('http')) {
+    // Modo link: busca via Jina AI Reader
+    try {
+      const jinaRes = await fetch(`https://r.jina.ai/${url}`, {
+        headers: {
+          'Accept': 'text/plain',
+          'X-Return-Format': 'markdown',
+          'X-No-Cache': 'true',
+          'X-With-Generated-Alt': 'true',
+        },
+        signal: AbortSignal.timeout(30000),
+      })
+      pageText = await jinaRes.text()
+    } catch {
+      return res.status(502).json({ error: 'Não foi possível acessar a página' })
+    }
+
+    if (
+      pageText.length < 200 ||
+      pageText.toLowerCase().includes('captcha') ||
+      pageText.toLowerCase().includes('access denied')
+    ) {
+      return res.status(422).json({
+        error: 'Este site bloqueou a leitura automática. Use a opção "Colar página" — selecione tudo (Ctrl+A) e cole aqui.',
+      })
+    }
+  } else {
+    return res.status(400).json({ error: 'Informe uma URL ou cole o conteúdo da página' })
   }
 
-  // Verifica se Jina retornou conteúdo útil
-  if (
-    pageText.length < 200 ||
-    pageText.toLowerCase().includes('captcha') ||
-    pageText.toLowerCase().includes('access denied')
-  ) {
-    return res.status(422).json({
-      error: 'Este site bloqueou a leitura automática. Abra a página do hotel específico (não lista de resultados) ou preencha manualmente.',
-    })
-  }
-
-  const truncated = pageText.slice(0, 10000)
+  const truncated = pageText.slice(0, 12000)
   const camposPrompt = CAMPOS_PROMPT[tipo] ?? '"campos": {}'
 
   const prompt = `Você é um assistente especializado em extrair informações de páginas de viagem.
@@ -118,7 +122,7 @@ Retorne exatamente neste formato (use null para campos não encontrados):
 {
   "name": "nome descritivo e conciso da opção (ex: Hotel Sheraton Lisboa - 5 noites)",
   "value": 1234.56,${camposPrompt},
-  "url": "${url}"
+  "url": "${sourceUrl}"
 }
 
 Conteúdo da página:

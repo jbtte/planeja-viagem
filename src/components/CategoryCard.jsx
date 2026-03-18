@@ -39,6 +39,8 @@ export default function CategoryCard({
   const [optForm, setOptForm] = useState(EMPTY_OPT)
   const [saving, setSaving] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
+  const [pasteMode, setPasteMode] = useState(false)
+  const [pasteContent, setPasteContent] = useState('')
   const [parsing, setParsing] = useState(false)
   const [parseError, setParseError] = useState('')
   const [suggesting, setSuggesting] = useState(false)
@@ -123,18 +125,27 @@ export default function CategoryCard({
     setSuggesting(false)
   }
 
-  async function handleParseLink() {
-    if (!linkUrl.startsWith('http')) {
+  async function handleParse() {
+    const body = pasteMode
+      ? { content: pasteContent, tipo: category.tipo }
+      : { url: linkUrl, tipo: category.tipo }
+
+    if (!pasteMode && !linkUrl.startsWith('http')) {
       setParseError('Cole uma URL válida começando com http')
       return
     }
+    if (pasteMode && pasteContent.trim().length < 100) {
+      setParseError('Conteúdo muito curto — selecione tudo (Ctrl+A) na página e cole aqui')
+      return
+    }
+
     setParsing(true)
     setParseError('')
     try {
       const res = await fetch('/api/parse-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: linkUrl, tipo: category.tipo }),
+        body: JSON.stringify(body),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
@@ -142,13 +153,14 @@ export default function CategoryCard({
       setOptForm({
         name: data.name ?? '',
         value: data.value ?? '',
-        url: data.url ?? linkUrl,
+        url: data.url ?? (pasteMode ? '' : linkUrl),
         notes: '',
         campos: data.campos ?? {},
       })
       setLinkUrl('')
+      setPasteContent('')
     } catch (err) {
-      setParseError(err.message ?? 'Erro ao analisar o link')
+      setParseError(err.message ?? 'Erro ao analisar')
     }
     setParsing(false)
   }
@@ -450,43 +462,60 @@ export default function CategoryCard({
         >
           <form onSubmit={submitOption} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-            {/* Preencher por link */}
+            {/* Preencher automaticamente */}
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 8 }}>
-                ✨ Preencher automaticamente por link
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>✨ Preencher automaticamente</div>
+                <div style={{ display: 'flex', gap: 0, border: '1px solid #e2e8f0', borderRadius: 6, overflow: 'hidden' }}>
+                  {['link', 'colar'].map(mode => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => { setPasteMode(mode === 'colar'); setParseError('') }}
+                      style={{
+                        padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+                        background: (mode === 'colar') === pasteMode ? '#3b82f6' : '#fff',
+                        color: (mode === 'colar') === pasteMode ? '#fff' : '#64748b',
+                      }}
+                    >
+                      {mode === 'link' ? 'Link' : 'Colar página'}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  type="url"
-                  style={{ ...inputStyle, background: '#fff', flex: 1 }}
-                  value={linkUrl}
-                  onChange={e => { setLinkUrl(e.target.value); setParseError('') }}
-                  placeholder="Cole o link da passagem, hotel, carro..."
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleParseLink())}
-                />
-                <button
-                  type="button"
-                  onClick={handleParseLink}
-                  disabled={parsing || !linkUrl}
-                  style={{
-                    ...btnPrimary,
-                    padding: '7px 14px',
-                    fontSize: 13,
-                    opacity: parsing || !linkUrl ? 0.6 : 1,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {parsing ? 'Analisando...' : 'Analisar'}
-                </button>
-              </div>
-              {parseError && (
-                <div style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{parseError}</div>
-              )}
-              {parsing && (
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>
-                  Lendo a página e extraindo informações...
+
+              {!pasteMode ? (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="url"
+                    style={{ ...inputStyle, background: '#fff', flex: 1 }}
+                    value={linkUrl}
+                    onChange={e => { setLinkUrl(e.target.value); setParseError('') }}
+                    placeholder="Cole o link da passagem, hotel, carro..."
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleParse())}
+                  />
+                  <button type="button" onClick={handleParse} disabled={parsing || !linkUrl}
+                    style={{ ...btnPrimary, padding: '7px 14px', fontSize: 13, opacity: parsing || !linkUrl ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+                    {parsing ? 'Analisando...' : 'Analisar'}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <textarea
+                    style={{ ...inputStyle, background: '#fff', minHeight: 80, resize: 'vertical', fontSize: 12 }}
+                    value={pasteContent}
+                    onChange={e => { setPasteContent(e.target.value); setParseError('') }}
+                    placeholder={'Abra a página, selecione tudo (Ctrl+A), copie (Ctrl+C) e cole aqui (Ctrl+V)'}
+                  />
+                  <button type="button" onClick={handleParse} disabled={parsing || pasteContent.trim().length < 100}
+                    style={{ ...btnPrimary, padding: '7px 14px', fontSize: 13, width: '100%', marginTop: 6, opacity: parsing || pasteContent.trim().length < 100 ? 0.6 : 1 }}>
+                    {parsing ? 'Analisando...' : 'Extrair informações'}
+                  </button>
                 </div>
               )}
+
+              {parseError && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{parseError}</div>}
+              {parsing && <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>Extraindo informações com IA...</div>}
             </div>
 
             <Field label="Nome da opção *">
