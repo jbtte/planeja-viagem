@@ -41,6 +41,21 @@ function calcBudgets(categories, numPeople) {
 
 const STATUS_LABEL = { pesquisando: 'Pesquisando', fechado: 'Fechado', descartado: 'Descartado' }
 const STATUS_COLOR = { pesquisando: '#f59e0b', fechado: '#10b981', descartado: '#94a3b8' }
+const TIPO_LABEL = {
+  passagens: 'Passagens', hotel: 'Hotel', carro: 'Carro', passeios: 'Passeios',
+  seguro: 'Seguro', translados: 'Translados', gastos_diarios: 'Gastos do dia a dia', restaurantes: 'Restaurantes',
+}
+
+function catValue(cat, numPeople) {
+  const opts = cat.options ?? []
+  const selected = opts.find(o => o.status === 'selecionado')
+  const best =
+    selected ??
+    opts.filter(o => o.status !== 'descartado')
+      .sort((a, b) => (Number(a.value) || 0) - (Number(b.value) || 0))[0]
+  const rawVal = Number(best?.value ?? 0)
+  return best?.campos?.por_pessoa ? rawVal * (numPeople ?? 1) : rawVal
+}
 
 function renderWidget(trip, categories) {
   const currency = trip.currency
@@ -48,28 +63,29 @@ function renderWidget(trip, categories) {
   const showBrl = currency !== 'BRL' && trip.exchange_rate > 1
   const overBudget = trip.budget && estimado > trip.budget
 
-  const visibleCats = categories.filter(c => c.status !== 'descartado')
+  // Group by tipo, skipping descartado
+  const groups = {}
+  for (const cat of categories) {
+    if (cat.status === 'descartado') continue
+    if (!groups[cat.tipo]) groups[cat.tipo] = []
+    groups[cat.tipo].push(cat)
+  }
 
-  const rows = visibleCats.map(cat => {
-    const opts = cat.options ?? []
-    const selected = opts.find(o => o.status === 'selecionado')
-    const best =
-      selected ??
-      opts.filter(o => o.status !== 'descartado')
-        .sort((a, b) => (Number(a.value) || 0) - (Number(b.value) || 0))[0]
-    const rawVal = Number(best?.value ?? 0)
-    const val = best?.campos?.por_pessoa ? rawVal * (trip.num_people ?? 1) : rawVal
-    const brlVal = val * (trip.exchange_rate || 1)
-    const statusColor = STATUS_COLOR[cat.status] || '#94a3b8'
-    const statusLabel = STATUS_LABEL[cat.status] || cat.status
+  const rows = Object.entries(groups).map(([tipo, cats]) => {
+    const total = cats.reduce((sum, c) => sum + catValue(c, trip.num_people), 0)
+    const brlTotal = total * (trip.exchange_rate || 1)
+    // Status: fechado only if ALL are fechado, otherwise pesquisando
+    const groupStatus = cats.every(c => c.status === 'fechado') ? 'fechado' : 'pesquisando'
+    const statusColor = STATUS_COLOR[groupStatus]
+    const statusLabel = STATUS_LABEL[groupStatus]
+    const label = TIPO_LABEL[tipo] ?? tipo
 
     return `
       <tr>
-        <td class="td-name">${cat.name}</td>
-        <td class="td-option">${best?.name ?? '—'}</td>
+        <td class="td-name">${label}</td>
         <td class="td-value">
-          ${val > 0 ? fmtCurrency(val, currency) : '—'}
-          ${showBrl && val > 0 ? `<br><span class="brl">≈ ${fmtCurrency(brlVal, 'BRL')}</span>` : ''}
+          ${total > 0 ? fmtCurrency(total, currency) : '—'}
+          ${showBrl && total > 0 ? `<br><span class="brl">≈ ${fmtCurrency(brlTotal, 'BRL')}</span>` : ''}
         </td>
         <td class="td-status">
           <span class="badge" style="background:${statusColor}22;color:${statusColor}">${statusLabel}</span>
@@ -169,13 +185,12 @@ function renderWidget(trip, categories) {
         <thead>
           <tr>
             <th>Categoria</th>
-            <th>Opção</th>
             <th class="right">Valor</th>
             <th class="center">Status</th>
           </tr>
         </thead>
         <tbody>
-          ${rows || '<tr><td colspan="4" class="empty">Nenhuma categoria</td></tr>'}
+          ${rows || '<tr><td colspan="3" class="empty">Nenhuma categoria</td></tr>'}
         </tbody>
       </table>
     </div>
