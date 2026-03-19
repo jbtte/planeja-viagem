@@ -45,6 +45,9 @@ export default function CategoryCard({
   const [parseError, setParseError] = useState('')
   const [suggesting, setSuggesting] = useState(false)
   const [suggestNote, setSuggestNote] = useState('')
+  const [comparing, setComparing] = useState(false)
+  const [comparison, setComparison] = useState('')
+  const [showComparison, setShowComparison] = useState(false)
 
   const campos = TIPO_CAMPOS[category.tipo] ?? []
   const options = category.options ?? []
@@ -163,6 +166,31 @@ export default function CategoryCard({
       setParseError(err.message ?? 'Erro ao analisar')
     }
     setParsing(false)
+  }
+
+  async function handleCompare() {
+    setComparing(true)
+    setComparison('')
+    setShowComparison(true)
+    try {
+      const res = await fetch('/api/compare-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: { name: category.name, tipo: category.tipo },
+          options,
+          destination: tripDestination,
+          numPeople: tripNumPeople,
+          currency,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setComparison(json.comparison)
+    } catch (err) {
+      setComparison(`Erro: ${err.message}`)
+    }
+    setComparing(false)
   }
 
   async function submitOption(e) {
@@ -299,11 +327,23 @@ export default function CategoryCard({
               onEdit={() => openEdit(opt)}
             />
           ))}
+          {options.filter(o => o.status !== 'descartado').length >= 2 && (
+            <div style={{ padding: '8px 16px', borderTop: '1px solid #f1f5f9' }}>
+              <button
+                onClick={handleCompare}
+                disabled={comparing}
+                style={{ ...btnAddOption, color: '#7c3aed', borderColor: '#e9d5ff', background: '#faf5ff', opacity: comparing ? 0.6 : 1 }}
+              >
+                {comparing ? '✨ Analisando...' : '✨ Comparar opções com IA'}
+              </button>
+            </div>
+          )}
+
           {!isFechado && (
             <div
               style={{
                 padding: '10px 16px',
-                borderTop: options.length > 0 ? '1px solid #f1f5f9' : 'none',
+                borderTop: '1px solid #f1f5f9',
               }}
             >
               <button onClick={() => setShowAddOption(true)} style={btnAddOption}>
@@ -339,6 +379,21 @@ export default function CategoryCard({
             </div>
           )}
         </div>
+      )}
+
+      {/* Comparison modal */}
+      {showComparison && (
+        <Modal title={`✨ Comparação — ${category.name}`} onClose={() => setShowComparison(false)}>
+          {comparing ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: '#64748b' }}>
+              Analisando opções com IA...
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: '#1e293b', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+              {comparison}
+            </div>
+          )}
+        </Modal>
       )}
 
       {/* Edit option modal */}
